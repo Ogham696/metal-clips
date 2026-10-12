@@ -13,6 +13,8 @@ const CONFIG = {
     urlCol: "CLIP'S URL",
     // colonne favori (valeur non vide / TRUE / 1 = favori) — ignorée si elle n'existe pas
     favCol: "Favorite",
+    // colonne d'ID Metal Archives : sert au lien avec la table des groupes (vide = pas de lien)
+    maIdCol: "ID METAL ARCHIVES",
     // colonnes cachées dans le tableau (toujours visibles dans la fiche détail)
     hide: ["Colonne 1", "ACTION", "DOUBLON?", "Column 1", "Dans l'ém", "SOURCE", "WEEK", "ID METAL ARCHIVES"],
     // filtres : colonne + séparateur éventuel pour les cellules multi-valeurs

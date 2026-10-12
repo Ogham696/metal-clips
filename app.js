@@ -16,6 +16,11 @@
 
   // ---------- Utilitaires ----------
   const col = (headers, name) => headers.find((h) => norm(h) === norm(name));
+  // Le lien groupe <-> clip se fait UNIQUEMENT par l'ID Metal Archives (les homonymes existent).
+  // ID vide = groupe absent de la table des groupes = pas de lien.
+  const normId = (v) => clean(v).replace(/\s/g, "");
+  const bandId = (row) => { const h = col(state.data.bands.headers, CONFIG.bands.maIdCol); return h ? normId(row[h]) : ""; };
+  const clipId = (row) => { const h = col(state.data.clips.headers, CONFIG.clips.maIdCol); return h ? normId(row[h]) : ""; };
   const bandName = (row) => {
     for (const c of CONFIG.bands.nameCols) { const h = col(state.data.bands.headers, c); if (h && clean(row[h])) return clean(row[h]); }
     return "";
@@ -58,12 +63,13 @@
     const nameH = CONFIG.bands.nameCols.map((c) => col(state.data.bands.headers, c)).filter(Boolean);
     state.data.bands.rows = state.data.bands.rows.filter((r) => nameH.some((h) => clean(r[h])));
     // index des groupes
-    for (const r of state.data.bands.rows) { const k = key(bandName(r)); if (k) state.bandIndex.set(k, r); }
+    // (un groupe sans ID reçoit une clé unique : il s'affiche, mais aucun clip ne peut s'y rattacher)
+    state.data.bands.rows.forEach((r, i) => { r.__k = bandId(r) || "row-" + i; state.bandIndex.set(r.__k, r); });
     // clips par groupe + compléments depuis les groupes
-    const cb = col(state.data.clips.headers, CONFIG.clips.bandCol);
     for (const r of state.data.clips.rows) {
-      const k = key(r[cb]);
-      if (!k) continue;
+      const k = clipId(r);
+      r.__k = state.bandIndex.has(k) ? k : "";
+      if (!r.__k) continue;
       if (!state.clipsByBand.has(k)) state.clipsByBand.set(k, []);
       state.clipsByBand.get(k).push(r);
       const b = state.bandIndex.get(k);
@@ -173,10 +179,10 @@
     const cfg = CONFIG[state.tab];
     if (state.tab === "clips") {
       if (norm(h) === norm(cfg.urlCol) && /^https?:/i.test(v)) return `<button class="play" data-clip="${esc(v)}">▶</button>`;
-      if (norm(h) === norm(cfg.bandCol)) return `<button class="link-btn" data-band="${esc(key(v))}">${esc(v)}</button>`;
+      if (norm(h) === norm(cfg.bandCol)) return row.__k ? `<button class="link-btn" data-band="${esc(row.__k)}">${esc(v)}</button>` : esc(v);
       if (norm(h) === norm(cfg.favCol)) return isFav(row) ? '<span class="star">★</span>' : "";
     }
-    if (state.tab === "bands" && CONFIG.bands.nameCols.some((c) => norm(c) === norm(h))) return `<button class="link-btn" data-band="${esc(key(v))}">${esc(v)}</button>`;
+    if (state.tab === "bands" && CONFIG.bands.nameCols.some((c) => norm(c) === norm(h))) return `<button class="link-btn" data-band="${esc(row.__k)}">${esc(v)}</button>`;
     if (/^https?:/i.test(v)) return `<a href="${esc(v)}" target="_blank" rel="noopener">lien</a>`;
     return v.split("\n").map((x) => `<span class="multi">${esc(x)}</span>`).join("");
   }
@@ -237,8 +243,8 @@
     const band = clean(row[col(h, c.bandCol)]);
     openModal(`<h2>${esc(band)} — ${esc(clean(row[col(h, c.titleCol)]))}</h2>${player}` +
       dl(h, row, [c.urlCol, "Colonne 1", "ACTION", "Column 1"]) +
-      (state.bandIndex.has(key(band)) ? `<button class="ghost" id="to-band">Voir la fiche du groupe</button>` : ""));
-    const tb = $("#to-band"); if (tb) tb.onclick = () => openBand(key(band));
+      (row.__k ? `<button class="ghost" id="to-band">Voir la fiche du groupe</button>` : ""));
+    const tb = $("#to-band"); if (tb) tb.onclick = () => openBand(row.__k);
   }
 
   function openBand(k) {
