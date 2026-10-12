@@ -13,6 +13,8 @@ const CONFIG = {
     urlCol: "CLIP'S URL",
     // colonne favori (valeur non vide / TRUE / 1 = favori) — ignorée si elle n'existe pas
     favCol: "Favorite",
+    // tri par défaut : plus récent d'abord (les dates vides vont à la fin)
+    defaultSort: { col: "DATE", desc: true },
     // colonne d'ID Metal Archives : sert au lien avec la table des groupes (vide = pas de lien)
     maIdCol: "ID METAL ARCHIVES",
     // colonnes cachées dans le tableau (toujours visibles dans la fiche détail)

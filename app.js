@@ -96,7 +96,9 @@
   }
 
   function switchTab(tab) {
-    state.tab = tab; state.search = ""; state.filters = {}; state.onlyFav = false; state.sort = { col: null, desc: false }; state.page = 1;
+    state.tab = tab; state.search = ""; state.filters = {}; state.onlyFav = false; state.page = 1;
+    const ds = CONFIG[tab].defaultSort, dh = ds && col(state.data[tab].headers, ds.col);
+    state.sort = dh ? { col: dh, desc: !!ds.desc } : { col: null, desc: false };
     $("#search").value = ""; $("#only-fav").checked = false;
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     $("#only-fav").parentElement.style.display = tab === "clips" && col(state.data.clips.headers, CONFIG.clips.favCol) ? "" : "none";
