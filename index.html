@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metal Clips</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🤘 Metal Clips</h1>
+  <nav>
+    <button class="tab active" data-tab="clips">Clips <span id="count-clips" class="badge"></span></button>
+    <button class="tab" data-tab="bands">Groupes <span id="count-bands" class="badge"></span></button>
+  </nav>
+</header>
+
+<main>
+  <section id="controls">
+    <input id="search" type="search" placeholder="Rechercher…" autocomplete="off">
+    <div id="filters"></div>
+    <label class="check"><input type="checkbox" id="only-fav"> Favoris</label>
+    <button id="reset" class="ghost">Réinitialiser</button>
+  </section>
+
+  <div id="status"></div>
+  <div class="table-wrap"><table id="table"><thead></thead><tbody></tbody></table></div>
+  <div id="pager"></div>
+</main>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <button id="modal-close" class="close" aria-label="Fermer">×</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

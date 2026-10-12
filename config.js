@@ -1,0 +1,41 @@
+// ============================================================
+//  CONFIG — seul fichier à toucher si tu renommes des colonnes
+//  Les noms de colonnes ne tiennent pas compte des majuscules.
+// ============================================================
+const CONFIG = {
+  clips: {
+    file: "data/Stream_Metal_Setlist - clips.csv",
+    // colonne du nom du groupe (sert à faire le lien avec la table des groupes)
+    bandCol: "BAND",
+    // colonne titre du morceau
+    titleCol: "SONG",
+    // colonne contenant l'URL du clip (affichée comme bouton ▶)
+    urlCol: "CLIP'S URL",
+    // colonne favori (valeur non vide / TRUE / 1 = favori)
+    favCol: "Favorite",
+    // colonnes cachées dans le tableau (toujours visibles dans la fiche détail)
+    hide: ["Colonne 1", "ACTION", "DOUBLON?", "Column 1", "Dans l'ém", "SOURCE", "WEEK", "ID Metal Archives"],
+    // filtres : colonne + séparateur éventuel pour les cellules multi-valeurs
+    filters: [
+      { col: "VIDEO'S TYPE" },
+      { col: "COUNTRY" },
+      { col: "STYLE FROM SOURCES", split: /[\n,]+/ },
+    ],
+    // colonnes manquantes (#N/A, vide) complétées depuis la table des groupes
+    fillFromBands: { "COUNTRY": "Country of origin", "STYLE FROM SOURCES": "ACTUAL Genre or MetalStorm à défaut" },
+  },
+  bands: {
+    file: "data/Stream_Metal_Setlist - band.csv",
+    // colonnes possibles pour le nom du groupe (la 1re non vide est utilisée)
+    nameCols: ["Column 10", "BAND"],
+    hide: ["Column 9", "ID metal-archives"],
+    filters: [
+      { col: "Country of origin" },
+      { col: "ACTUAL Genre or MetalStorm à défaut", split: /\// },
+    ],
+    // lien Metal Archives construit depuis cette colonne d'ID (optionnel)
+    maIdCol: "ID metal-archives",
+  },
+  pageSize: 50,
+  naValues: ["#N/A", "N/A", "#REF!", "#VALUE!", "undefined", "null"],
+};
