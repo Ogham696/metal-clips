@@ -37,6 +37,15 @@
   };
   const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+  // Clip sans lien en base : lien vers une recherche YouTube (groupe + titre)
+  const hasUrl = (row) => /^https?:/i.test(clean(row[col(state.data.clips.headers, CONFIG.clips.urlCol)]));
+  const searchLink = (row) => {
+    const h = state.data.clips.headers, c = CONFIG.clips;
+    const q = [clean(row[col(h, c.bandCol)]), clean(row[col(h, c.titleCol)])].filter(Boolean).join(" ");
+    const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+    return `<a class="nosearch" href="${esc(url)}" target="_blank" rel="noopener" title="Ce clip n'est pas encore en base. Ce lien ouvre une recherche YouTube qui devrait donner le bon résultat.">🔍 Pas encore en base</a>`;
+  };
+
   function load(file) {
     return new Promise((resolve, reject) => {
       Papa.parse(encodeURI(file), {
@@ -177,8 +186,9 @@
 
   function cellHTML(h, row) {
     const v = clean(row[h]);
-    if (!v) return "";
     const cfg = CONFIG[state.tab];
+    if (state.tab === "clips" && norm(h) === norm(cfg.urlCol) && !/^https?:/i.test(v)) return searchLink(row);
+    if (!v) return "";
     if (state.tab === "clips") {
       if (norm(h) === norm(cfg.urlCol) && /^https?:/i.test(v)) return `<button class="play" data-clip="${esc(v)}">▶</button>`;
       if (norm(h) === norm(cfg.bandCol)) return row.__k ? `<button class="link-btn" data-band="${esc(row.__k)}">${esc(v)}</button>` : esc(v);
@@ -261,7 +271,7 @@
       if (id && /^\d+$/.test(id)) html += `<p><a href="https://www.metal-archives.com/bands/_/${id}" target="_blank" rel="noopener">Metal Archives ↗</a></p>`;
     } else html += "<p>Groupe absent de la table des groupes.</p>";
     html += `<h3>Clips (${clips.length})</h3><ul class="clip-list">` +
-      clips.map((r, i) => `<li><span>${esc(clean(r[col(ch, c.titleCol)]))}</span><span style="color:var(--muted)">${esc(clean(r[col(ch, "VIDEO'S TYPE")] || ""))}</span><button class="play" data-i="${i}">▶</button></li>`).join("") + "</ul>";
+      clips.map((r, i) => `<li><span>${esc(clean(r[col(ch, c.titleCol)]))}</span><span style="color:var(--muted)">${esc(clean(r[col(ch, "VIDEO'S TYPE")] || ""))}</span>${hasUrl(r) ? `<button class="play" data-i="${i}">▶</button>` : searchLink(r)}</li>`).join("") + "</ul>";
     openModal(html);
     document.querySelectorAll(".clip-list .play").forEach((btn) => btn.onclick = () => openClip(clips[+btn.dataset.i]));
   }
