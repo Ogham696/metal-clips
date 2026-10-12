@@ -27,7 +27,7 @@ Exporte ta feuille en CSV (Fichier → Télécharger → CSV, **une feuille à l
 ## Colonnes
 
 - Les noms de colonnes sont dans `config.js`. Si tu en renommes une dans ta feuille, change-la là aussi.
-- Le lien clip ↔ groupe se fait via le nom du groupe (colonne `BAND` des clips = `Column 10` ou `BAND` des groupes), sans tenir compte des majuscules.
+- Le lien clip ↔ groupe se fait via le nom du groupe (colonne `BAND` des clips = colonne `Band` des groupes), sans tenir compte des majuscules.
 - Les valeurs `#N/A` sont traitées comme vides. Pays et style manquants dans les clips sont complétés depuis la table des groupes.
 - Favoris : toute valeur non vide dans la colonne `Favorite` (sauf FALSE/0/non).
 

@@ -52,6 +52,11 @@
       $("#status").textContent = "Impossible de charger les CSV : " + e;
       return;
     }
+    // ignore les lignes sans nom de groupe (ex. ligne vide remplie de #N/A)
+    const bandH = col(state.data.clips.headers, CONFIG.clips.bandCol);
+    state.data.clips.rows = state.data.clips.rows.filter((r) => clean(r[bandH]));
+    const nameH = CONFIG.bands.nameCols.map((c) => col(state.data.bands.headers, c)).filter(Boolean);
+    state.data.bands.rows = state.data.bands.rows.filter((r) => nameH.some((h) => clean(r[h])));
     // index des groupes
     for (const r of state.data.bands.rows) { const k = key(bandName(r)); if (k) state.bandIndex.set(k, r); }
     // clips par groupe + compléments depuis les groupes
@@ -113,6 +118,19 @@
   }
 
   // ---------- Filtrage / tri ----------
+  // valeur numérique pour le tri : nombre, durée mm:ss / h:mm:ss, date "1 juil. 2026" ; sinon null
+  const MONTHS = ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"];
+  function sortNum(v) {
+    if (/^-?\d+([.,]\d+)?$/.test(v)) return parseFloat(v.replace(",", "."));
+    if (/^\d{1,2}(:\d{2}){1,2}$/.test(v)) return v.split(":").reduce((a, n) => a * 60 + +n, 0);
+    const m = v.match(/^(\d{1,2})\s+([^\s\d.]+)\.?\s+(\d{4})$/);
+    if (m) {
+      const mi = MONTHS.findIndex((x) => m[2].toLowerCase().startsWith(x));
+      if (mi >= 0) return Date.UTC(+m[3], mi, +m[1]);
+    }
+    return null;
+  }
+
   function filtered() {
     const cfg = CONFIG[state.tab], { headers, rows } = state.data[state.tab];
     const q = norm(state.search);
@@ -134,8 +152,8 @@
       out = out.slice().sort((a, b) => {
         const x = clean(a[sc]), y = clean(b[sc]);
         if (!x && y) return 1; if (x && !y) return -1;
-        const nx = parseFloat(x), ny = parseFloat(y);
-        const c = !isNaN(nx) && !isNaN(ny) && /^[\d.,:\s-]+$/.test(x + y) ? nx - ny : x.localeCompare(y, undefined, { numeric: true });
+        const nx = sortNum(x), ny = sortNum(y);
+        const c = nx !== null && ny !== null ? nx - ny : x.localeCompare(y, undefined, { numeric: true });
         return desc ? -c : c;
       });
     }
