@@ -104,16 +104,20 @@
     document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
     let t; $("#search").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { state.search = e.target.value; state.page = 1; render(); }, 150); });
     $("#only-fav").addEventListener("change", (e) => { state.onlyFav = e.target.checked; state.page = 1; render(); });
-    $("#reset").addEventListener("click", () => { state.search = ""; state.filters = {}; state.onlyFav = false; $("#search").value = ""; $("#only-fav").checked = false; buildFilters(); state.page = 1; render(); });
+    $("#reset").addEventListener("click", () => { state.search = ""; state.filters = {}; state.onlyFav = false; state.sort = defaultSort(state.tab); $("#search").value = ""; $("#only-fav").checked = false; buildFilters(); state.page = 1; render(); });
     $("#modal-close").addEventListener("click", closeModal);
     $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
   }
 
+  function defaultSort(tab) {
+    const ds = CONFIG[tab].defaultSort, dh = ds && col(state.data[tab].headers, ds.col);
+    return dh ? { col: dh, desc: !!ds.desc } : { col: null, desc: false };
+  }
+
   function switchTab(tab) {
     state.tab = tab; state.search = ""; state.filters = {}; state.onlyFav = false; state.page = 1;
-    const ds = CONFIG[tab].defaultSort, dh = ds && col(state.data[tab].headers, ds.col);
-    state.sort = dh ? { col: dh, desc: !!ds.desc } : { col: null, desc: false };
+    state.sort = defaultSort(tab);
     $("#search").value = ""; $("#only-fav").checked = false;
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     $("#only-fav").parentElement.style.display = tab === "clips" && col(state.data.clips.headers, CONFIG.clips.favCol) ? "" : "none";

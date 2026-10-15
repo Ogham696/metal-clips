@@ -36,6 +36,8 @@ const CONFIG = {
     fallback: "data/Stream_Metal_Setlist - band.csv",
     // colonnes possibles pour le nom du groupe (la 1re non vide est utilisée)
     nameCols: ["Band"],
+    // tri par défaut : ordre alphabétique (conservé quand on filtre)
+    defaultSort: { col: "Band", desc: false },
     hide: ["ID metal-archives"],
     filters: [
       { col: "Country of origin" },
