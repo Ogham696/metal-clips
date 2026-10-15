@@ -22,7 +22,11 @@ data/
 
 ## Mettre à jour les données
 
-Exporte ta feuille en CSV (Fichier → Télécharger → CSV, **une feuille à la fois**), garde les noms `Stream_Metal_Setlist - clips.csv` / `Stream_Metal_Setlist - band.csv`, remplace les fichiers dans `data/` sur GitHub (Add file → Upload files). Le site se met à jour après une minute ou deux.
+Le site lit directement tes feuilles Google publiées en CSV (liens dans `config.js`, clé `file`). Tu modifies ta feuille, et le site se met à jour tout seul après quelques minutes (délai de cache de Google). Plus rien à exporter ni à envoyer sur GitHub.
+
+- Les fichiers du dossier `data/` ne servent que de **secours** si Google est injoignable. Tu peux les remplacer de temps en temps par un export récent, ou supprimer la ligne `fallback` dans `config.js`.
+- Si tu supprimes la publication d'une feuille (Fichier → Partager → Publier sur le web), le site bascule sur le secours.
+- Ne change pas l'ordre ni le nom des colonnes sans adapter `config.js`.
 
 ## Colonnes
 

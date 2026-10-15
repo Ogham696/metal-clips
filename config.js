@@ -4,7 +4,10 @@
 // ============================================================
 const CONFIG = {
   clips: {
-    file: "data/Stream_Metal_Setlist - clips.csv",
+    // source principale : feuille Google publiée en CSV (se met à jour toute seule)
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfvMjnXkousbjfq3WtyKIZ9OI6LnIlt-kJcszsUd-dN5uqaI5Pk0uG3Wb2lLMB4u5vrGxarX1gDf94/pub?gid=1990340787&single=true&output=csv",
+    // secours si Google est injoignable (optionnel : supprime la ligne pour désactiver)
+    fallback: "data/Stream_Metal_Setlist - clips.csv",
     // colonne du nom du groupe (sert à faire le lien avec la table des groupes)
     bandCol: "BAND",
     // colonne titre du morceau
@@ -29,7 +32,8 @@ const CONFIG = {
     fillFromBands: { "COUNTRY": "Country of origin", "STYLE FROM SOURCES": "Genre" },
   },
   bands: {
-    file: "data/Stream_Metal_Setlist - band.csv",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfvMjnXkousbjfq3WtyKIZ9OI6LnIlt-kJcszsUd-dN5uqaI5Pk0uG3Wb2lLMB4u5vrGxarX1gDf94/pub?gid=488321503&single=true&output=csv",
+    fallback: "data/Stream_Metal_Setlist - band.csv",
     // colonnes possibles pour le nom du groupe (la 1re non vide est utilisée)
     nameCols: ["Band"],
     hide: ["ID metal-archives"],

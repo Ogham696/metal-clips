@@ -46,21 +46,27 @@
     return `<a class="nosearch" href="${esc(url)}" target="_blank" rel="noopener" title="Ce clip n'est pas encore en base. Ce lien ouvre une recherche YouTube qui devrait donner le bon résultat.">🔍 Pas encore en base</a>`;
   };
 
-  function load(file) {
+  function parseUrl(url) {
     return new Promise((resolve, reject) => {
-      Papa.parse(encodeURI(file), {
+      Papa.parse(encodeURI(url), {
         download: true, header: true, skipEmptyLines: "greedy",
-        complete: (r) => resolve({ headers: r.meta.fields || [], rows: r.data }),
+        complete: (r) => (r.meta.fields && r.meta.fields.length > 1 && r.data.length)
+          ? resolve({ headers: r.meta.fields, rows: r.data }) : reject(new Error("fichier vide ou invalide : " + url)),
         error: reject,
       });
     });
+  }
+  // essaie la source principale, puis le fichier de secours
+  async function load(cfg) {
+    try { return await parseUrl(cfg.file); }
+    catch (e) { if (!cfg.fallback) throw e; console.warn("Source principale indisponible, utilisation du secours", e); return parseUrl(cfg.fallback); }
   }
 
   // ---------- Initialisation ----------
   async function init() {
     $("#status").textContent = "Chargement…";
     try {
-      const [clips, bands] = await Promise.all([load(CONFIG.clips.file), load(CONFIG.bands.file)]);
+      const [clips, bands] = await Promise.all([load(CONFIG.clips), load(CONFIG.bands)]);
       state.data.clips = clips; state.data.bands = bands;
     } catch (e) {
       $("#status").textContent = "Impossible de charger les CSV : " + e;
