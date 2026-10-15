@@ -40,6 +40,7 @@ const CONFIG = {
     filters: [
       { col: "Country of origin" },
       { col: "Genre", split: /[\/,]+/ },
+      { col: "Themes", split: /[,;]+/ },
     ],
     // lien Metal Archives construit depuis cette colonne d'ID (optionnel)
     maIdCol: "ID metal-archives",
