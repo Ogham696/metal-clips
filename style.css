@@ -32,6 +32,61 @@ a{color:var(--accent2)}
 .link-btn:hover{text-decoration:underline}
 .play{background:var(--accent);color:#fff;border:0;border-radius:4px;padding:3px 9px;cursor:pointer}
 .star{color:#f5c542}
+/* ---------- vues (accueil, carte, jeux) ---------- */
+.view.hidden{display:none}
+.muted{color:var(--muted)}
+.section-title{margin:0 0 12px;font-size:18px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 18px;color:var(--muted)}
+.stat b{display:block;font-size:24px;color:var(--accent2);line-height:1.2}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.card{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.card-logo{flex:0 0 84px;height:60px;display:flex;align-items:center;justify-content:center}
+.card-logo img{max-width:100%;max-height:100%;object-fit:contain;mix-blend-mode:screen}
+.card-body{flex:1;min-width:0}
+.card-date{color:var(--muted);font-size:12px}
+.card-song{margin:2px 0;font-size:15px;overflow-wrap:anywhere}
+.card-band{font-size:13px;color:var(--accent2)}
+span.card-band{color:var(--text)}
+.card-meta{color:var(--muted);font-size:12px;margin-top:2px;overflow-wrap:anywhere}
+.card-actions{flex:0 0 auto}
+.home-links{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+/* carte */
+#map{position:relative;z-index:1;height:calc(100vh - 220px);min-height:420px;border:1px solid var(--line);border-radius:8px;background:#12171a}
+#map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.85) saturate(.6)}
+.country-bubble{display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(46,125,91,.8);border:2px solid var(--accent2);color:#fff;font-weight:700;font-size:13px;box-shadow:0 0 10px rgba(0,0,0,.5);cursor:pointer}
+.country-bubble:hover{background:rgba(79,209,161,.85);color:#06251a}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--text)}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+.map-pop h3{margin:0 0 2px;font-size:16px}
+.map-pop p{margin:0 0 8px}
+.pop-list{display:flex;flex-direction:column;gap:2px;max-height:200px;overflow:auto;margin-bottom:8px}
+/* jeux */
+.seg{display:flex;gap:6px;margin-bottom:14px;justify-content:center;flex-wrap:wrap}
+.seg button{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px}
+.seg button.active{background:var(--accent);border-color:var(--accent2);color:#fff}
+.game-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;max-width:760px;margin:0 auto}
+.game-score{color:var(--muted);text-align:center;margin-bottom:10px}
+.game-score b{color:var(--text)}
+.game-visual{min-height:170px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.game-logo img{max-width:100%;max-height:220px;object-fit:contain;mix-blend-mode:screen}
+.game-band{font-size:30px;font-weight:700;text-align:center;overflow-wrap:anywhere}
+.game-prompt{text-align:center;color:var(--muted);margin:0 0 16px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{display:flex;align-items:center;gap:10px;padding:14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:15px;cursor:pointer;text-align:left;overflow-wrap:anywhere}
+.choice:hover:not(:disabled){border-color:var(--accent2)}
+.choice .k{flex:0 0 22px;height:22px;border-radius:5px;background:var(--line);color:var(--muted);font-size:12px;display:flex;align-items:center;justify-content:center}
+.choice:disabled{cursor:default}
+.choice.ok{background:#1b6b45;border-color:#4fd1a1;color:#fff}
+.choice.ko{background:#8a2f2f;border-color:#e06c6c;color:#fff}
+.choice.dim{opacity:.45}
+.game-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;min-height:34px}
+.verdict{font-weight:700}
+.verdict.ok{color:#4fd1a1}
+.verdict.ko{color:#e8837f}
+.game-foot .play{margin-left:auto;padding:7px 16px}
+@media(max-width:700px){.choices{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
+
 /* fiche groupe : infos à gauche, logo à droite, sans cadre */
 .band-top{display:flex;gap:28px;align-items:center;margin-bottom:8px}
 .band-info{flex:1 1 auto;min-width:0}

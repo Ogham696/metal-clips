@@ -69,6 +69,8 @@
       const [clips, bands] = await Promise.all([load(CONFIG.clips), load(CONFIG.bands)]);
       state.data.clips = clips; state.data.bands = bands;
     } catch (e) {
+      // on montre la vue tableau pour que le message d'erreur soit visible
+      document.querySelectorAll(".view").forEach((v) => v.classList.toggle("hidden", v.id !== "view-table"));
       $("#status").textContent = "Impossible de charger les CSV : " + e;
       return;
     }
@@ -96,7 +98,8 @@
     $("#count-clips").textContent = state.data.clips.rows.length;
     $("#count-bands").textContent = state.data.bands.rows.length;
     bindEvents();
-    switchTab("clips");
+    const fromHash = (location.hash || "").slice(1);
+    switchTab(TABS.includes(fromHash) ? fromHash : "home");
   }
 
   // ---------- Événements ----------
@@ -115,7 +118,32 @@
     return dh ? { col: dh, desc: !!ds.desc } : { col: null, desc: false };
   }
 
+  const TABS = ["home", "clips", "bands", "map", "games"];
+  const isTable = (tab) => tab === "clips" || tab === "bands";
+
+  // ouvre l'onglet Groupes avec des filtres préremplis, ex. { "Country of origin": "France" }
+  function gotoBands(filters) {
+    closeModal();
+    switchTab("bands");
+    for (const [name, val] of Object.entries(filters || {})) {
+      const h = col(state.data.bands.headers, name);
+      if (h) state.filters[h] = val;
+    }
+    buildFilters(); render();
+  }
+
   function switchTab(tab) {
+    // quelle vue afficher ?
+    document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    const viewId = "view-" + (isTable(tab) ? "table" : tab);
+    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("hidden", v.id !== viewId));
+    try { history.replaceState(null, "", "#" + tab); } catch (e) { /* sans importance */ }
+    if (!isTable(tab)) {
+      state.tab = tab;
+      window.scrollTo(0, 0);
+      if (window.VIEWS && window.VIEWS[tab]) window.VIEWS[tab].show();
+      return;
+    }
     state.tab = tab; state.search = ""; state.filters = {}; state.onlyFav = false; state.page = 1;
     state.sort = defaultSort(tab);
     $("#search").value = ""; $("#only-fav").checked = false;
@@ -290,6 +318,9 @@
     openModal(html);
     document.querySelectorAll(".clip-list .play").forEach((btn) => btn.onclick = () => openClip(clips[+btn.dataset.i]));
   }
+
+  // petit "API" partagé avec views.js (accueil, carte, jeux)
+  window.APP = { state, clean, esc, col, norm, sortNum, hasUrl, searchLink, bandName, openClip, openBand, gotoBands, switchTab };
 
   init();
 })();

@@ -7,8 +7,10 @@ Site statique : il lit directement `data/Stream_Metal_Setlist - clips.csv` et `d
 ```
 index.html
 style.css
-config.js    <- noms de colonnes, filtres, colonnes cachées
-app.js
+config.js    <- noms de colonnes, filtres, colonnes cachées, nombre de clips en accueil
+countries.js <- positions des pays pour la carte
+app.js       <- tableaux Clips / Groupes, fiches
+views.js     <- pages Accueil, Carte et Jeux
 data/
   Stream_Metal_Setlist - clips.csv
   Stream_Metal_Setlist - band.csv
@@ -27,6 +29,12 @@ Le site lit directement tes feuilles Google publiées en CSV (liens dans `config
 - Les fichiers du dossier `data/` ne servent que de **secours** si Google est injoignable. Tu peux les remplacer de temps en temps par un export récent, ou supprimer la ligne `fallback` dans `config.js`.
 - Si tu supprimes la publication d'une feuille (Fichier → Partager → Publier sur le web), le site bascule sur le secours.
 - Ne change pas l'ordre ni le nom des colonnes sans adapter `config.js`.
+
+## Pages
+
+- **Accueil** : les 20 derniers clips (colonne `DATE`, plus récent d'abord) et quelques chiffres. Le nombre de clips se règle avec `homeCount` dans `config.js`.
+- **Carte** : une bulle par pays avec le nombre de groupes ; un clic liste les groupes. Un pays absent de la carte se signale sous le titre : ajoute-le dans `countries.js`.
+- **Jeux** : « Quel groupe ? » (un logo, 4 noms) et « Quel pays ? » (un nom de groupe, 4 pays). Vert/rouge puis « Suivant ». Les touches 1 à 4 répondent, Entrée passe à la suite.
 
 ## Colonnes
 

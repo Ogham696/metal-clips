@@ -4,28 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Metal Clips</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
   <h1>🤘 Metal Clips</h1>
   <nav>
-    <button class="tab active" data-tab="clips">Clips <span id="count-clips" class="badge"></span></button>
+    <button class="tab active" data-tab="home">Accueil</button>
+    <button class="tab" data-tab="clips">Clips <span id="count-clips" class="badge"></span></button>
     <button class="tab" data-tab="bands">Groupes <span id="count-bands" class="badge"></span></button>
+    <button class="tab" data-tab="map">Carte</button>
+    <button class="tab" data-tab="games">Jeux</button>
   </nav>
 </header>
 
 <main>
-  <section id="controls">
-    <input id="search" type="search" placeholder="Rechercher…" autocomplete="off">
-    <div id="filters"></div>
-    <label class="check"><input type="checkbox" id="only-fav"> Favoris</label>
-    <button id="reset" class="ghost">Réinitialiser</button>
+  <!-- Accueil -->
+  <section id="view-home" class="view"><p id="home-loading" class="muted">Chargement…</p></section>
+
+  <!-- Carte du monde -->
+  <section id="view-map" class="view hidden">
+    <h2 class="section-title">Les groupes dans le monde</h2>
+    <p id="map-note" class="muted"></p>
+    <div id="map"></div>
   </section>
 
-  <div id="status"></div>
-  <div class="table-wrap"><table id="table"><thead></thead><tbody></tbody></table></div>
-  <div id="pager"></div>
+  <!-- Jeux -->
+  <section id="view-games" class="view hidden">
+    <div class="seg" id="game-modes">
+      <button data-game="logo" class="active">🎸 Quel groupe ?</button>
+      <button data-game="country">🌍 Quel pays ?</button>
+    </div>
+    <div id="game-box" class="game-box"></div>
+  </section>
+
+  <!-- Tableaux (clips / groupes) -->
+  <section id="view-table" class="view hidden">
+    <section id="controls">
+      <input id="search" type="search" placeholder="Rechercher…" autocomplete="off">
+      <div id="filters"></div>
+      <label class="check"><input type="checkbox" id="only-fav"> Favoris</label>
+      <button id="reset" class="ghost">Réinitialiser</button>
+    </section>
+
+    <div id="status"></div>
+    <div class="table-wrap"><table id="table"><thead></thead><tbody></tbody></table></div>
+    <div id="pager"></div>
+  </section>
 </main>
 
 <div id="modal" class="modal hidden">
@@ -36,7 +62,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="config.js"></script>
+<script src="countries.js"></script>
 <script src="app.js"></script>
+<script src="views.js"></script>
 </body>
 </html>
