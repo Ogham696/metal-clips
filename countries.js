@@ -76,3 +76,84 @@ function countryCoord(name) {
   const k = _normCountry(name);
   return COUNTRY_COORDS[k] || COUNTRY_COORDS[COUNTRY_ALIASES[k]] || null;
 }
+
+// ============================================================
+//  Villes : on retrouve la position d'un groupe à partir de sa colonne
+//  "Location" (ex. « Cleveland, Ohio ») et de son pays.
+//  Les coordonnées viennent de data/cities.json (villes de plus de 2000 habitants).
+// ============================================================
+
+// villes absentes de cities.json ou mal reconnues : ajoute-les ici
+// clé = "nom de la ville|CODE PAYS ISO" (sans accents, en minuscules), valeur = [latitude, longitude]
+const CITY_EXTRA = {
+  // "ma petite ville|FR": [46.5, 2.5],
+};
+
+const US_STATES = {
+  "alabama":"AL","alaska":"AK","arizona":"AZ","arkansas":"AR","california":"CA","colorado":"CO","connecticut":"CT","delaware":"DE",
+  "florida":"FL","georgia":"GA","hawaii":"HI","idaho":"ID","illinois":"IL","indiana":"IN","iowa":"IA","kansas":"KS","kentucky":"KY",
+  "louisiana":"LA","maine":"ME","maryland":"MD","massachusetts":"MA","michigan":"MI","minnesota":"MN","mississippi":"MS","missouri":"MO",
+  "montana":"MT","nebraska":"NE","nevada":"NV","new hampshire":"NH","new jersey":"NJ","new mexico":"NM","new york":"NY","north carolina":"NC",
+  "north dakota":"ND","ohio":"OH","oklahoma":"OK","oregon":"OR","pennsylvania":"PA","rhode island":"RI","south carolina":"SC","south dakota":"SD",
+  "tennessee":"TN","texas":"TX","utah":"UT","vermont":"VT","virginia":"VA","washington":"WA","west virginia":"WV","wisconsin":"WI","wyoming":"WY",
+  "district of columbia":"DC",
+};
+
+// même normalisation que celle utilisée pour fabriquer cities.json
+const _normPlace = (s) => (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/['’`´]/g, "").replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim()
+  .replace(/\bst\b/g, "saint").replace(/\bmt\b/g, "mount");
+
+let _isoByCountry = null;
+function countryISO(name) {
+  if (!_isoByCountry) {
+    _isoByCountry = {};
+    try {
+      const dn = new Intl.DisplayNames(["en"], { type: "region" });
+      for (let a = 65; a <= 90; a++) for (let b = 65; b <= 90; b++) {
+        const cc = String.fromCharCode(a, b);
+        let n; try { n = dn.of(cc); } catch (e) { continue; }
+        if (n && n !== cc) _isoByCountry[_normPlace(n)] = cc;
+      }
+    } catch (e) { /* navigateur très ancien : pas de géocodage des villes */ }
+    Object.assign(_isoByCountry, {
+      "myanmar": "MM", "ivory coast": "CI", "hong kong": "HK", "macao": "MO", "palestine": "PS", "svalbard": "SJ",
+      "democratic republic of the congo": "CD", "czech republic": "CZ", "czechia": "CZ", "reunion": "RE", "kosovo": "XK",
+      "united states": "US", "united kingdom": "GB", "russia": "RU", "south korea": "KR", "north korea": "KP", "vatican city": "VA",
+    });
+  }
+  const k = _normCountry(name);
+  return _isoByCountry[_normPlace(COUNTRY_ALIASES[k] || k)] || null;
+}
+
+// "Cairns (early)/Brisbane (later), Queensland" -> { city: "Brisbane", region: "Queensland" }
+function parseLocation(text) {
+  const t = (text || "").toString().trim();
+  if (!t || /^(n\/a|\?|#n\/a)$/i.test(t)) return null;
+  const first = (seg) => { const p = seg.replace(/^[\s,;\/]+/, "").split(",").map((x) => x.trim()); return { city: p[0] || "", region: p[1] || "" }; };
+  const parts = t.split(/\(([^)]*)\)/);          // [texte, (tag), texte, (tag), …, reste]
+  const timed = [];
+  for (let i = 0; i + 1 < parts.length; i += 2) if (/^(early|late|later|present|current|now|formerly|originally|previously)/i.test(parts[i + 1].trim())) timed.push({ seg: parts[i], tag: parts[i + 1].toLowerCase() });
+  if (timed.length) {
+    const pick = timed.find((x) => /present|current|now/.test(x.tag)) || [...timed].reverse().find((x) => /late/.test(x.tag)) || timed[timed.length - 1];
+    const r = first(pick.seg);
+    if (!r.region && pick === timed[timed.length - 1]) r.region = first(parts[parts.length - 1]).city;  // ", Queensland" après le dernier tag
+    return r;
+  }
+  return first(t.replace(/\([^)]*\)/g, "").split(/[\/;]/)[0]);
+}
+
+// renvoie [lat, lng] ou null ; window.CITY_INDEX est rempli par views.js
+function cityCoord(location, country) {
+  const iso = countryISO(country), p = parseLocation(location);
+  if (!iso || !p || !p.city) return null;
+  const c = _normPlace(p.city);
+  if (CITY_EXTRA[c + "|" + iso]) return CITY_EXTRA[c + "|" + iso];
+  const idx = window.CITY_INDEX; if (!idx) return null;
+  if (iso === "US" && p.region) { const st = US_STATES[_normPlace(p.region)]; if (st && idx[c + "|US|" + st]) return idx[c + "|US|" + st]; }
+  const hit = (k) => idx[k + "|" + iso] || null;
+  let r = hit(c);
+  // « Mühldorf am Inn » -> « Mühldorf » : on retire les derniers mots tant que rien n'est trouvé
+  for (let w = c.split(" "); !r && w.length > 1; ) { w = w.slice(0, -1); if (w.join(" ").length >= 5) r = hit(w.join(" ")); }
+  return r;
+}

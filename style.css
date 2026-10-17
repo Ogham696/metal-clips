@@ -56,6 +56,8 @@ span.card-band{color:var(--text)}
 #map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.85) saturate(.6)}
 .country-bubble{display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(46,125,91,.8);border:2px solid var(--accent2);color:#fff;font-weight:700;font-size:13px;box-shadow:0 0 10px rgba(0,0,0,.5);cursor:pointer}
 .country-bubble:hover{background:rgba(79,209,161,.85);color:#06251a}
+.band-dot{width:14px;height:14px;border-radius:50%;background:var(--accent2);border:2px solid #0d3b2a;box-shadow:0 0 6px rgba(79,209,161,.8)}
+.band-dot.approx{background:transparent;border:2px dashed var(--accent2);box-shadow:none}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--text)}
 .leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
 .map-pop h3{margin:0 0 2px;font-size:16px}

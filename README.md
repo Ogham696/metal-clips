@@ -8,7 +8,8 @@ Site statique : il lit directement `data/Stream_Metal_Setlist - clips.csv` et `d
 index.html
 style.css
 config.js    <- noms de colonnes, filtres, colonnes cachées, nombre de clips en accueil
-countries.js <- positions des pays pour la carte
+countries.js <- positions des pays et lecture de la colonne Location
+  (data/cities.json : coordonnées des villes, généré une fois)
 app.js       <- tableaux Clips / Groupes, fiches
 views.js     <- pages Accueil, Carte et Jeux
 data/
@@ -33,7 +34,7 @@ Le site lit directement tes feuilles Google publiées en CSV (liens dans `config
 ## Pages
 
 - **Accueil** : les 20 derniers clips (colonne `DATE`, plus récent d'abord) et quelques chiffres. Le nombre de clips se règle avec `homeCount` dans `config.js`.
-- **Carte** : une bulle par pays avec le nombre de groupes ; un clic liste les groupes. Un pays absent de la carte se signale sous le titre : ajoute-le dans `countries.js`.
+- **Carte** : chaque groupe est placé dans sa ville d'après la colonne `Location` et son pays (ex. « Cleveland, Ohio » + United States). Les groupes proches se regroupent en bulles qui se séparent quand on zoome. Si la ville n'est pas reconnue, le groupe est placé au centre de son pays (cercle creux). Quand une ligne indique plusieurs villes, la plus récente est utilisée. Les coordonnées viennent de `data/cities.json` (fichier généré une fois : ne le modifie pas). Pour corriger ou ajouter une ville, utilise `CITY_EXTRA` dans `countries.js`.
 - **Jeux** : « Quel groupe ? » (un logo, 4 noms) et « Quel pays ? » (un nom de groupe, 4 pays). Vert/rouge puis « Suivant ». Les touches 1 à 4 répondent, Entrée passe à la suite.
 
 ## Colonnes

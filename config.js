@@ -45,6 +45,9 @@ const CONFIG = {
     logoCol: "URL Logo",
     // colonne du pays (carte et quiz des pays)
     countryCol: "Country of origin",
+    // colonnes utilisées par la carte pour placer les groupes et décrire leur fenêtre
+    locationCol: "Location",
+    genreCol: "Genre",
     filters: [
       { col: "Country of origin" },
       { col: "Genre", split: /[\/,]+/ },
@@ -56,5 +59,7 @@ const CONFIG = {
   pageSize: 50,
   // nombre de clips récents affichés sur la page d'accueil
   homeCount: 20,
+  // villes et coordonnées (généré une fois, ne change pas)
+  citiesFile: "data/cities.json",
   naValues: ["#N/A", "N/A", "#REF!", "#VALUE!", "undefined", "null"],
 };

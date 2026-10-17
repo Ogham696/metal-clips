@@ -19,8 +19,10 @@
     const bh = state.data.bands.headers;
     const cH = col(bh, CONFIG.bands.countryCol);
     const lH = CONFIG.bands.logoCol && col(bh, CONFIG.bands.logoCol);
+    const locH = CONFIG.bands.locationCol && col(bh, CONFIG.bands.locationCol), gH = CONFIG.bands.genreCol && col(bh, CONFIG.bands.genreCol);
     return state.data.bands.rows
-      .map((r) => ({ k: r.__k, name: bandName(r), country: cH ? clean(r[cH]) : "", logo: lH ? clean(r[lH]) : "" }))
+      .map((r) => ({ k: r.__k, name: bandName(r), country: cH ? clean(r[cH]) : "", logo: lH ? clean(r[lH]) : "",
+        location: locH ? clean(r[locH]) : "", genre: gH ? clean(r[gH]) : "" }))
       .filter((b) => b.name);
   }
 
@@ -82,6 +84,9 @@
   };
 
   // ================= CARTE =================
+  // Chaque groupe est placé dans sa ville (colonne Location) ; si la ville est inconnue,
+  // il est placé au centre de son pays (marqueur creux). Les groupes proches se regroupent
+  // en bulles qui se séparent quand on zoome.
   const MAP = {
     map: null,
     show() {
@@ -91,51 +96,58 @@
       setTimeout(() => this.map.invalidateSize(), 50);
     },
     build() {
-      const { esc } = A();
-      this.map = L.map("map", { worldCopyJump: true, minZoom: 2, maxZoom: 8, zoomSnap: 0.5 }).setView([30, 10], 2);
+      this.map = L.map("map", { worldCopyJump: true, minZoom: 2, maxZoom: 14, zoomSnap: 0.5 }).setView([30, 10], 2);
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
       }).addTo(this.map);
-
-      // regroupe les groupes par pays
-      const groups = new Map(), missing = new Map();
-      let placed = 0;
+      $("#map-note").textContent = "Chargement des villes…";
+      // le fichier des villes est chargé une seule fois, puis mis en cache par le navigateur
+      fetch(CONFIG.citiesFile).then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((j) => { window.CITY_INDEX = j; }).catch((e) => console.warn("cities.json indisponible : positions au niveau des pays", e))
+        .finally(() => this.draw());
+    },
+    draw() {
+      const dot = (cls) => L.divIcon({ className: "band-dot-wrap", html: `<div class="band-dot ${cls}"></div>`, iconSize: [14, 14] });
+      const iconExact = dot(""), iconApprox = dot("approx");
+      const layer = L.markerClusterGroup
+        ? L.markerClusterGroup({
+            showCoverageOnHover: false, maxClusterRadius: 45, spiderfyOnMaxZoom: true, chunkedLoading: true,
+            iconCreateFunction: (c) => {
+              const n = c.getChildCount(), d = Math.round(Math.min(62, 26 + Math.sqrt(n) * 3));
+              return L.divIcon({ className: "country-bubble-wrap", iconSize: [d, d], html: `<div class="country-bubble" style="width:${d}px;height:${d}px">${n}</div>` });
+            },
+          })
+        : L.layerGroup();
+      let exact = 0, approx = 0; const missing = new Map();
       for (const b of bands()) {
         if (!validCountry(b.country)) continue;
-        const pos = countryCoord(b.country);
+        let pos = cityCoord(b.location, b.country), isExact = !!pos;
+        if (!pos) pos = countryCoord(b.country);
         if (!pos) { missing.set(b.country, (missing.get(b.country) || 0) + 1); continue; }
-        const key = pos.join(",");
-        if (!groups.has(key)) groups.set(key, { label: b.country, pos, list: [] });
-        groups.get(key).list.push(b);
-        placed++;
+        isExact ? exact++ : approx++;
+        const m = L.marker(pos, { icon: isExact ? iconExact : iconApprox, title: b.name });
+        m.bindTooltip(A().esc(b.name));
+        m.bindPopup(() => this.popup(b, isExact), { maxWidth: 300 });
+        layer.addLayer(m);
       }
-      for (const g of groups.values()) {
-        const n = g.list.length, d = Math.round(Math.min(64, 22 + Math.sqrt(n) * 5));
-        const icon = L.divIcon({ className: "country-bubble-wrap", iconSize: [d, d],
-          html: `<div class="country-bubble" style="width:${d}px;height:${d}px">${n}</div>` });
-        // les petites bulles passent au-dessus des grosses (pays voisins qui se chevauchent)
-        const m = L.marker(g.pos, { icon, title: g.label, zIndexOffset: Math.round(10000 / n) }).addTo(this.map);
-        m.bindTooltip(`${esc(g.label)} — ${n} groupe${n > 1 ? "s" : ""}`);
-        m.bindPopup(() => this.popup(g), { maxWidth: 320 });
-      }
-      let msg = `${placed} groupes placés sur ${groups.size} pays. Clique sur une bulle pour voir les groupes.`;
+      layer.addTo(this.map);
+      let msg = `${exact + approx} groupes sur la carte : ${exact} placés dans leur ville`;
+      if (approx) msg += `, ${approx} au centre de leur pays (cercle creux : ville inconnue ou absente de la colonne Location)`;
+      msg += ". Zoome pour séparer les bulles.";
       if (missing.size) msg += ` Pays absents de la carte (à ajouter dans countries.js) : ${[...missing].map(([k, v]) => `${k} (${v})`).join(", ")}.`;
       $("#map-note").textContent = msg;
     },
-    popup(g) {
-      const { esc, openBand, gotoBands } = A();
-      const n = g.list.length, sorted = g.list.slice().sort((a, b) => a.name.localeCompare(b.name)), shown = sorted.slice(0, 15);
+    popup(b, isExact) {
+      const { esc, openBand } = A();
       const el = document.createElement("div");
       el.className = "map-pop";
-      el.innerHTML = `<h3>${esc(g.label)}</h3><p class="muted">${n} groupe${n > 1 ? "s" : ""}</p>` +
-        `<div class="pop-list">${shown.map((b) => `<button class="link-btn" data-band="${esc(b.k)}">${esc(b.name)}</button>`).join("")}</div>` +
-        (n > shown.length ? `<p class="muted">… et ${n - shown.length} autres</p>` : "") +
-        `<button class="ghost" data-all>Voir les ${n} groupes →</button>`;
-      el.onclick = (e) => {
-        const b = e.target.closest("[data-band]");
-        if (b) openBand(b.dataset.band);
-        else if (e.target.closest("[data-all]")) gotoBands({ [CONFIG.bands.countryCol]: g.label });
-      };
+      const place = [b.location, b.country].filter(Boolean).join(" — ");
+      el.innerHTML = `<h3>${esc(b.name)}</h3>` +
+        (place ? `<p class="muted">${esc(place)}</p>` : "") +
+        (b.genre ? `<p>${esc(b.genre)}</p>` : "") +
+        (isExact ? "" : `<p class="muted">Position approximative (centre du pays).</p>`) +
+        `<button class="ghost" data-band="${esc(b.k)}">Voir la fiche →</button>`;
+      el.onclick = (e) => { const x = e.target.closest("[data-band]"); if (x) openBand(x.dataset.band); };
       return el;
     },
   };
