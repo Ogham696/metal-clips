@@ -276,7 +276,10 @@
     let html = `<h2>${esc(name)}</h2>`;
     if (b) {
       const bh = state.data.bands.headers;
-      html += dl(bh, b, [...CONFIG.bands.nameCols, "BAND"].concat(CONFIG.bands.maIdCol ? [CONFIG.bands.maIdCol] : []));
+      const lh = CONFIG.bands.logoCol && col(bh, CONFIG.bands.logoCol), logo = lh ? clean(b[lh]) : "";
+      if (/^https?:\/\//i.test(logo))
+        html += `<div class="logo-box"><img src="${esc(logo)}" alt="Logo ${esc(name)}" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`;
+      html += dl(bh, b, [...CONFIG.bands.nameCols, "BAND"].concat(CONFIG.bands.maIdCol ? [CONFIG.bands.maIdCol] : [], CONFIG.bands.logoCol ? [CONFIG.bands.logoCol] : []));
       const idH = col(bh, CONFIG.bands.maIdCol), id = idH && clean(b[idH]);
       if (id && /^\d+$/.test(id)) html += `<p><a href="https://www.metal-archives.com/bands/_/${id}" target="_blank" rel="noopener">Metal Archives ↗</a></p>`;
     } else html += "<p>Groupe absent de la table des groupes.</p>";

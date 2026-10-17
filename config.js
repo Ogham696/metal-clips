@@ -38,7 +38,9 @@ const CONFIG = {
     nameCols: ["Band"],
     // tri par défaut : ordre alphabétique (conservé quand on filtre)
     defaultSort: { col: "Band", desc: false },
-    hide: ["ID metal-archives"],
+    hide: ["ID metal-archives", "URL Logo"],
+    // colonne contenant l'URL du logo (affiché en haut de la fiche du groupe)
+    logoCol: "URL Logo",
     filters: [
       { col: "Country of origin" },
       { col: "Genre", split: /[\/,]+/ },
