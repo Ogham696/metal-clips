@@ -273,12 +273,13 @@
     const b = state.bandIndex.get(k), clips = state.clipsByBand.get(k) || [];
     const ch = state.data.clips.headers, c = CONFIG.clips;
     const name = b ? bandName(b) : k;
-    let html = `<h2>${esc(name)}</h2>`;
+    // en-tête : nom à gauche, logo (si présent) en haut à droite
+    const lh = b && CONFIG.bands.logoCol && col(state.data.bands.headers, CONFIG.bands.logoCol), logo = lh ? clean(b[lh]) : "";
+    const logoHtml = /^https?:\/\//i.test(logo)
+      ? `<div class="logo-box"><img src="${esc(logo)}" alt="Logo ${esc(name)}" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>` : "";
+    let html = `<div class="band-head"><h2>${esc(name)}</h2>${logoHtml}</div>`;
     if (b) {
       const bh = state.data.bands.headers;
-      const lh = CONFIG.bands.logoCol && col(bh, CONFIG.bands.logoCol), logo = lh ? clean(b[lh]) : "";
-      if (/^https?:\/\//i.test(logo))
-        html += `<div class="logo-box"><img src="${esc(logo)}" alt="Logo ${esc(name)}" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`;
       html += dl(bh, b, [...CONFIG.bands.nameCols, "BAND"].concat(CONFIG.bands.maIdCol ? [CONFIG.bands.maIdCol] : [], CONFIG.bands.logoCol ? [CONFIG.bands.logoCol] : []));
       const idH = col(bh, CONFIG.bands.maIdCol), id = idH && clean(b[idH]);
       if (id && /^\d+$/.test(id)) html += `<p><a href="https://www.metal-archives.com/bands/_/${id}" target="_blank" rel="noopener">Metal Archives ↗</a></p>`;
