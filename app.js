@@ -73,8 +73,9 @@
       const r = await fetch(CONFIG.maCacheFile, { cache: "no-cache" });
       if (r.ok) cache = await r.json();
     } catch (e) { console.warn("ma_cache.json indisponible : infos de la feuille uniquement", e); return; }
-    const bh = state.data.bands.headers, idH = col(bh, CONFIG.bands.maIdCol);
-    if (!idH) return;
+    const bh = state.data.bands.headers;
+    let idH = col(bh, CONFIG.bands.maIdCol);
+    if (!idH) { idH = CONFIG.bands.maIdCol; bh.push(idH); }
     const fields = CONFIG.bands.maFields;
     for (const name of Object.keys(fields)) if (!col(bh, name)) bh.push(name);   // colonnes que la feuille n'a pas (Status, Label…)
     for (const r of state.data.bands.rows) {
@@ -85,6 +86,25 @@
         if (v !== undefined && v !== null && String(v).trim() !== "") r[col(bh, name)] = String(v);
       }
       r.__ma = rec.checked || true;
+    }
+    // ID présent sur un clip mais groupe absent de la table des groupes : on crée la fiche depuis Metal Archives
+    const known = new Set(state.data.bands.rows.map((r) => normId(r[idH])));
+    const clipIdH = col(state.data.clips.headers, CONFIG.clips.maIdCol), clipBandH = col(state.data.clips.headers, CONFIG.clips.bandCol);
+    const nameHdr = col(bh, CONFIG.bands.nameCols[0]) || CONFIG.bands.nameCols[0];
+    if (clipIdH && !col(bh, CONFIG.bands.nameCols[0])) bh.push(nameHdr);
+    for (const c of state.data.clips.rows) {
+      const id = normId(c[clipIdH]), rec = cache[id];
+      if (!id || known.has(id) || !rec || rec.error) continue;
+      known.add(id);
+      const r = {};
+      r[idH] = id;
+      r[nameHdr] = clean(c[clipBandH]) || rec.name || id;
+      for (const [name, key] of Object.entries(fields)) {
+        const v = rec[key];
+        if (v !== undefined && v !== null && String(v).trim() !== "") r[col(bh, name)] = String(v);
+      }
+      r.__ma = rec.checked || true;
+      state.data.bands.rows.push(r);
     }
   }
 

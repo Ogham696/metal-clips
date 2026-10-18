@@ -33,7 +33,7 @@ Le site lit directement tes feuilles Google publiées en CSV (liens dans `config
 
 ## Infos Metal Archives (automatique, optionnel)
 
-Pour chaque groupe qui a un `ID metal-archives`, le site utilise **d'abord** les infos de Metal Archives (pays, ville, année de formation, genre, thèmes, logo, statut, années d'activité, label). Si l'ID est vide, ou si le groupe est introuvable, ce sont les valeurs de ta table `band` qui servent. Le nom du groupe reste celui de ta feuille.
+Il suffit de renseigner la colonne `ID METAL ARCHIVES` sur la ligne du **clip** : le script lit les ID de la feuille des clips (puis ceux de la feuille des groupes) et le site crée la fiche du groupe tout seul s'il n'est pas dans la table des groupes. La table `band` ne sert plus que pour les groupes absents de Metal Archives (ou pour corriger une info). Pour chaque groupe qui a un ID, le site utilise **d'abord** les infos de Metal Archives (pays, ville, année de formation, genre, thèmes, logo, statut, années d'activité, label). Si l'ID est vide, ou si le groupe est introuvable, ce sont les valeurs de ta table `band` qui servent. Le nom du groupe reste celui de ta feuille.
 
 Comme Python ne tourne pas sur GitHub Pages, le script `tools/update_ma_cache.py` (bibliothèque `enmet`) interroge Metal Archives et écrit le résultat dans `data/ma_cache.json`, que le site lit.
 
@@ -42,10 +42,11 @@ Comme Python ne tourne pas sur GitHub Pages, le script `tools/update_ma_cache.py
   - Le dossier `.github` est caché : sur GitHub, utilise « Add file → Create new file » et tape `.github/workflows/update-ma.yml` comme nom, puis colle le contenu.
 - **Sur ton PC** (si GitHub est bloqué par Metal Archives) :
   ```
-  pip install enmet==0.9.1
+  pip install enmet==0.9.1 curl_cffi
   python3 tools/update_ma_cache.py
   ```
   puis envoie `data/ma_cache.json` sur GitHub.
+- Metal Archives refuse les requêtes Python classiques (erreur 403) : le script imite donc un vrai Chrome grâce à `curl_cffi`. Si ça ne suffit pas, copie les cookies de ton navigateur (F12 → Réseau → une requête vers metal-archives.com → en-tête `Cookie`) et lance `python tools/update_ma_cache.py --cookie "..."`.
 - Options du script : `--limit N` (nombre de groupes par passage, 1500 par défaut, 0 = illimité), `--only ID`, `--refresh-days` (relire un groupe après N jours, 180 par défaut), `--retry-days`, `--dry-run`.
 - Un groupe introuvable (404) est mémorisé pour ne pas le redemander à chaque fois. Le script s'arrête après 5 échecs de suite (blocage possible) et reprend au passage suivant.
 - Pour désactiver tout ça : mets `maCacheFile: ""` dans `config.js`.
