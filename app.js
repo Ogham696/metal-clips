@@ -62,6 +62,32 @@
     catch (e) { if (!cfg.fallback) throw e; console.warn("Source principale indisponible, utilisation du secours", e); return parseUrl(cfg.fallback); }
   }
 
+  // ---------- Metal Archives ----------
+  // Le fichier ma_cache.json est rempli par tools/update_ma_cache.py (voir le README).
+  // Pour chaque groupe dont l'ID est dans ce fichier, les infos de Metal Archives remplacent
+  // celles de la feuille ; sinon (pas d'ID, groupe introuvable) la feuille est conservée.
+  async function applyMetalArchives() {
+    if (!CONFIG.maCacheFile || !CONFIG.bands.maFields) return;
+    let cache = {};
+    try {
+      const r = await fetch(CONFIG.maCacheFile, { cache: "no-cache" });
+      if (r.ok) cache = await r.json();
+    } catch (e) { console.warn("ma_cache.json indisponible : infos de la feuille uniquement", e); return; }
+    const bh = state.data.bands.headers, idH = col(bh, CONFIG.bands.maIdCol);
+    if (!idH) return;
+    const fields = CONFIG.bands.maFields;
+    for (const name of Object.keys(fields)) if (!col(bh, name)) bh.push(name);   // colonnes que la feuille n'a pas (Status, Label…)
+    for (const r of state.data.bands.rows) {
+      const rec = cache[normId(r[idH])];
+      if (!rec || rec.error) continue;
+      for (const [name, key] of Object.entries(fields)) {
+        const v = rec[key];
+        if (v !== undefined && v !== null && String(v).trim() !== "") r[col(bh, name)] = String(v);
+      }
+      r.__ma = rec.checked || true;
+    }
+  }
+
   // ---------- Initialisation ----------
   async function init() {
     $("#status").textContent = "Chargement…";
@@ -79,6 +105,8 @@
     state.data.clips.rows = state.data.clips.rows.filter((r) => clean(r[bandH]));
     const nameH = CONFIG.bands.nameCols.map((c) => col(state.data.bands.headers, c)).filter(Boolean);
     state.data.bands.rows = state.data.bands.rows.filter((r) => nameH.some((h) => clean(r[h])));
+    // infos Metal Archives (data/ma_cache.json) : prioritaires sur la feuille quand l'ID est connu
+    await applyMetalArchives();
     // index des groupes
     // (un groupe sans ID reçoit une clé unique : il s'affiche, mais aucun clip ne peut s'y rattacher)
     state.data.bands.rows.forEach((r, i) => { r.__k = bandId(r) || "row-" + i; state.bandIndex.set(r.__k, r); });
@@ -311,6 +339,7 @@
       info += dl(bh, b, [...CONFIG.bands.nameCols, "BAND"].concat(CONFIG.bands.maIdCol ? [CONFIG.bands.maIdCol] : [], CONFIG.bands.logoCol ? [CONFIG.bands.logoCol] : []));
       const idH = col(bh, CONFIG.bands.maIdCol), id = idH && clean(b[idH]);
       if (id && /^\d+$/.test(id)) info += `<p><a href="https://www.metal-archives.com/bands/_/${id}" target="_blank" rel="noopener">Metal Archives ↗</a></p>`;
+      if (b.__ma) info += `<p class="muted small">Infos issues de Metal Archives${typeof b.__ma === "string" ? " (relevé du " + esc(b.__ma) + ")" : ""}.</p>`;
     } else info += "<p>Groupe absent de la table des groupes.</p>";
     let html = `<h2>${esc(name)}</h2><div class="band-top"><div class="band-info">${info}</div>${logoHtml}</div>`;
     html += `<h3>Clips (${clips.length})</h3><ul class="clip-list">` +

@@ -40,7 +40,7 @@ const CONFIG = {
     nameCols: ["Band"],
     // tri par défaut : ordre alphabétique (conservé quand on filtre)
     defaultSort: { col: "Band", desc: false },
-    hide: ["ID metal-archives", "URL Logo"],
+    hide: ["ID metal-archives", "URL Logo", "Status", "Years active", "Label"],
     // colonne contenant l'URL du logo (affiché en haut de la fiche du groupe)
     logoCol: "URL Logo",
     // colonne du pays (carte et quiz des pays)
@@ -48,6 +48,20 @@ const CONFIG = {
     // colonnes utilisées par la carte pour placer les groupes et décrire leur fenêtre
     locationCol: "Location",
     genreCol: "Genre",
+    // colonne de la feuille <- champ du cache Metal Archives (priorité à Metal Archives quand il a une valeur).
+    // Les colonnes absentes de la feuille (Status, Years active, Label) sont ajoutées automatiquement.
+    // Le nom du groupe (colonne Band) n'est volontairement pas remplacé : tu gardes ta façon de l'écrire.
+    maFields: {
+      "Country of origin": "country",
+      "Location": "location",
+      "Formed in": "formed_in",
+      "Genre": "genre",
+      "Themes": "themes",
+      "URL Logo": "logo",
+      "Status": "status",
+      "Years active": "years_active",
+      "Label": "label",
+    },
     filters: [
       { col: "Country of origin" },
       { col: "Genre", split: /[\/,]+/ },
@@ -59,6 +73,8 @@ const CONFIG = {
   pageSize: 50,
   // nombre de clips récents affichés sur la page d'accueil
   homeCount: 20,
+  // infos Metal Archives récupérées par tools/update_ma_cache.py (laisse vide pour tout désactiver)
+  maCacheFile: "data/ma_cache.json",
   // villes et coordonnées (généré une fois, ne change pas)
   citiesFile: "data/cities.json",
   naValues: ["#N/A", "N/A", "#REF!", "#VALUE!", "undefined", "null"],

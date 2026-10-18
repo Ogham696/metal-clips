@@ -31,6 +31,26 @@ Le site lit directement tes feuilles Google publiées en CSV (liens dans `config
 - Si tu supprimes la publication d'une feuille (Fichier → Partager → Publier sur le web), le site bascule sur le secours.
 - Ne change pas l'ordre ni le nom des colonnes sans adapter `config.js`.
 
+## Infos Metal Archives (automatique, optionnel)
+
+Pour chaque groupe qui a un `ID metal-archives`, le site utilise **d'abord** les infos de Metal Archives (pays, ville, année de formation, genre, thèmes, logo, statut, années d'activité, label). Si l'ID est vide, ou si le groupe est introuvable, ce sont les valeurs de ta table `band` qui servent. Le nom du groupe reste celui de ta feuille.
+
+Comme Python ne tourne pas sur GitHub Pages, le script `tools/update_ma_cache.py` (bibliothèque `enmet`) interroge Metal Archives et écrit le résultat dans `data/ma_cache.json`, que le site lit.
+
+- **Automatique** : le workflow `.github/workflows/update-ma.yml` tourne chaque nuit et enregistre `data/ma_cache.json` s'il a changé. Premier lancement à la main : onglet **Actions** → « Mise à jour Metal Archives » → **Run workflow**.
+  - Réglage à faire une fois : Settings → Actions → General → Workflow permissions → **Read and write permissions**.
+  - Le dossier `.github` est caché : sur GitHub, utilise « Add file → Create new file » et tape `.github/workflows/update-ma.yml` comme nom, puis colle le contenu.
+- **Sur ton PC** (si GitHub est bloqué par Metal Archives) :
+  ```
+  pip install enmet==0.9.1
+  python3 tools/update_ma_cache.py
+  ```
+  puis envoie `data/ma_cache.json` sur GitHub.
+- Options du script : `--limit N` (nombre de groupes par passage, 1500 par défaut, 0 = illimité), `--only ID`, `--refresh-days` (relire un groupe après N jours, 180 par défaut), `--retry-days`, `--dry-run`.
+- Un groupe introuvable (404) est mémorisé pour ne pas le redemander à chaque fois. Le script s'arrête après 5 échecs de suite (blocage possible) et reprend au passage suivant.
+- Pour désactiver tout ça : mets `maCacheFile: ""` dans `config.js`.
+- Les colonnes reprises de Metal Archives se règlent dans `maFields` (`config.js`).
+
 ## Pages
 
 - **Accueil** : les 20 derniers clips (colonne `DATE`, plus récent d'abord) et quelques chiffres. Le nombre de clips se règle avec `homeCount` dans `config.js`.
