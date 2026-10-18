@@ -1,1 +1,53 @@
+name: Mise à jour Metal Archives
 
+on:
+  schedule:
+    - cron: "30 4 * * *"      # tous les jours vers 6 h 30 (heure belge)
+  workflow_dispatch:           # bouton « Run workflow » dans l'onglet Actions
+    inputs:
+      limit:
+        description: "Nombre maximum de groupes à interroger (0 = sans limite)"
+        default: "1500"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ma-cache
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer enmet
+        run: pip install enmet==0.9.1
+
+      - name: Interroger Metal Archives
+        id: ma
+        continue-on-error: true
+        run: python tools/update_ma_cache.py --limit "${{ github.event.inputs.limit || '1500' }}"
+
+      - name: Enregistrer le cache dans le dépôt
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ma_cache.json
+          if git diff --cached --quiet; then
+            echo "Aucun changement."
+          else
+            git commit -m "Mise à jour du cache Metal Archives"
+            git push
+          fi
+
+      - name: Signaler un arrêt anticipé
+        if: steps.ma.outcome == 'failure'
+        run: echo "::warning::Le script s'est arrêté avant la fin (Metal Archives a peut-être refusé les demandes). Le cache partiel a quand même été enregistré."
