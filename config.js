@@ -75,6 +75,11 @@ const CONFIG = {
   homeCount: 20,
   // infos Metal Archives récupérées par tools/update_ma_cache.py (laisse vide pour tout désactiver)
   maCacheFile: "data/ma_cache.json",
+  // date et durée des vidéos YouTube récupérées par tools/update_yt_cache.py (laisse vide pour désactiver)
+  // Elles ne complètent que les cellules DATE / DURATION vides ou #N/A : ta feuille reste prioritaire.
+  ytCacheFile: "data/yt_cache.json",
+  ytDateCol: "DATE",
+  ytDurationCol: "DURATION",
   // villes et coordonnées (généré une fois, ne change pas)
   citiesFile: "data/cities.json",
   naValues: ["#N/A", "N/A", "#REF!", "#VALUE!", "undefined", "null"],

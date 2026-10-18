@@ -108,6 +108,34 @@
     }
   }
 
+  // ---------- Date et durée YouTube (data/yt_cache.json, rempli par tools/update_yt_cache.py) ----------
+  const MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+  const YT_ID = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/|v\/))([A-Za-z0-9_-]{11})/;
+  const fmtDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${+m[3]} ${MONTHS_FR[+m[2] - 1]} ${m[1]}` : ""; };
+  const fmtDuration = (s) => {
+    s = Math.round(+s); if (!(s > 0)) return "";
+    const h = Math.floor(s / 3600), mi = Math.floor((s % 3600) / 60), se = s % 60, p = (n) => String(n).padStart(2, "0");
+    return h ? `${h}:${p(mi)}:${p(se)}` : `${p(mi)}:${p(se)}`;
+  };
+  async function applyYouTube() {
+    if (!CONFIG.ytCacheFile) return;
+    let cache = {};
+    try {
+      const r = await fetch(CONFIG.ytCacheFile, { cache: "no-cache" });
+      if (r.ok) cache = await r.json();
+    } catch (e) { console.warn("yt_cache.json indisponible", e); return; }
+    const h = state.data.clips.headers, urlH = col(h, CONFIG.clips.urlCol);
+    if (!urlH) return;
+    const dH = CONFIG.ytDateCol && col(h, CONFIG.ytDateCol), tH = CONFIG.ytDurationCol && col(h, CONFIG.ytDurationCol);
+    for (const r of state.data.clips.rows) {
+      const m = YT_ID.exec(clean(r[urlH]));
+      const rec = m && cache[m[1]];
+      if (!rec || rec.error) continue;
+      if (dH && !clean(r[dH]) && rec.date) r[dH] = fmtDate(rec.date);
+      if (tH && !clean(r[tH]) && rec.duration) r[tH] = fmtDuration(rec.duration);
+    }
+  }
+
   // ---------- Initialisation ----------
   async function init() {
     $("#status").textContent = "Chargement…";
@@ -125,6 +153,7 @@
     state.data.clips.rows = state.data.clips.rows.filter((r) => clean(r[bandH]));
     const nameH = CONFIG.bands.nameCols.map((c) => col(state.data.bands.headers, c)).filter(Boolean);
     state.data.bands.rows = state.data.bands.rows.filter((r) => nameH.some((h) => clean(r[h])));
+    await applyYouTube();
     // infos Metal Archives (data/ma_cache.json) : prioritaires sur la feuille quand l'ID est connu
     await applyMetalArchives();
     // index des groupes

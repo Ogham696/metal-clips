@@ -52,6 +52,16 @@ Comme Python ne tourne pas sur GitHub Pages, le script `tools/update_ma_cache.py
 - Pour désactiver tout ça : mets `maCacheFile: ""` dans `config.js`.
 - Les colonnes reprises de Metal Archives se règlent dans `maFields` (`config.js`).
 
+## Date et durée YouTube (automatique, optionnel)
+
+Le script `tools/update_yt_cache.py` (bibliothèque `yt-dlp`) lit l'adresse YouTube de chaque clip dans la feuille, demande à YouTube la **date de publication** et la **durée**, et les range dans `data/yt_cache.json`. Le site remplit alors les colonnes `DATE` et `DURATION` **uniquement quand la feuille les laisse vides ou en `#N/A`** : tes valeurs restent prioritaires. Le tri par date et la page d'accueil en profitent.
+
+- Seules les vidéos qui manquent sont interrogées ; une vidéo déjà dans le cache n'est jamais redemandée. Une vidéo privée ou supprimée est notée « indisponible » et réessayée après 30 jours.
+- Les liens de playlist (`&list=…`) fonctionnent : seul l'identifiant de la vidéo compte.
+- Pour tout mettre à jour d'un coup (Metal Archives puis YouTube) : `python tools/update_all.py`. Ensuite, envoie `data/ma_cache.json` et `data/yt_cache.json` sur GitHub.
+- Installation : `pip install enmet==0.9.1 curl_cffi yt-dlp`.
+- Pour désactiver : `ytCacheFile: ""` dans `config.js`.
+
 ## Pages
 
 - **Accueil** : les 20 derniers clips (colonne `DATE`, plus récent d'abord) et quelques chiffres. Le nombre de clips se règle avec `homeCount` dans `config.js`.
