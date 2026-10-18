@@ -4,8 +4,9 @@ Met à jour data/ma_cache.json avec les infos de Metal Archives.
 
 Principe
 --------
-1. Lit ta feuille « groupes » (CSV publié sur Google Sheets, adresse dans config.js).
-2. Garde les lignes qui ont un ID Metal Archives (colonne « ID metal-archives »).
+1. Lit ta feuille « clips » (colonne « ID METAL ARCHIVES ») puis ta feuille « groupes »
+   (CSV publiés sur Google Sheets, adresses dans config.js).
+2. Garde les ID Metal Archives distincts : il suffit de renseigner l'ID sur la ligne du clip.
 3. Pour chaque ID qui n'est pas encore dans le cache, interroge Metal Archives avec la
    bibliothèque enmet et enregistre : pays, ville, année de formation, genre, thèmes,
    statut, label, logo.
@@ -14,7 +15,7 @@ Principe
 
 Usage
 -----
-    pip install enmet==0.9.1
+    pip install enmet==0.9.1 curl_cffi
     python tools/update_ma_cache.py                 # nouveaux groupes seulement
     python tools/update_ma_cache.py --dry-run       # montre ce qui serait demandé, sans rien envoyer
     python tools/update_ma_cache.py --limit 0       # sans limite (premier remplissage)
@@ -39,9 +40,11 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG_JS = ROOT / "config.js"
 CACHE_FILE = ROOT / "data" / "ma_cache.json"
 LOCAL_FALLBACK = ROOT / "data" / "Stream_Metal_Setlist - band.csv"
+LOCAL_CLIPS = ROOT / "data" / "Stream_Metal_Setlist - clips.csv"
 ID_COLUMN = "ID metal-archives"
 MAX_CONSECUTIVE_FAILURES = 5
 EXIT_BLOCKED = 3
+RATE_LIMIT_WAITS = (20, 60, 120)  # secondes, pour les erreurs 429
 
 TIME_TAG = re.compile(r"\((?:early|late|later|mid|present|current|formerly|originally)[^)]*\)", re.I)
 
@@ -79,35 +82,47 @@ def read_text(source):
     return Path(source).read_text(encoding="utf-8-sig")
 
 
-def find_csv_source(arg):
+def find_csv_sources(arg):
+    """Liste de (adresse, fichier de secours) : d'abord la feuille des CLIPS (colonne « ID METAL ARCHIVES »),
+    puis la feuille des groupes. Avec --csv, seule la feuille indiquée est lue."""
     if arg:
-        return arg
-    if CONFIG_JS.exists():
-        m = re.search(r'bands:\s*\{.*?file:\s*"([^"]+)"', CONFIG_JS.read_text(encoding="utf-8"), re.S)
+        return [(arg, None)]
+    out = []
+    cfg = CONFIG_JS.read_text(encoding="utf-8") if CONFIG_JS.exists() else ""
+    for key, local in (("clips", LOCAL_CLIPS), ("bands", LOCAL_FALLBACK)):
+        m = re.search(key + r':\s*\{.*?file:\s*"([^"]+)"', cfg, re.S)
         if m:
-            return m.group(1)
-    return str(LOCAL_FALLBACK)
+            out.append((m.group(1), str(local)))
+        elif local.exists():
+            out.append((str(local), None))
+    return out
 
 
-def read_ids(source):
+def _norm_header(h):
+    return re.sub(r"[\s\-_]+", " ", (h or "").strip().lower())
+
+
+def read_ids(source, fallback=None):
     """Renvoie [(id, nom), …] pour les lignes qui ont un ID numérique."""
     try:
         text = read_text(source)
     except Exception as e:  # noqa: BLE001
         print(f"Impossible de lire la feuille ({e}).", file=sys.stderr)
-        if LOCAL_FALLBACK.exists() and str(LOCAL_FALLBACK) != source:
-            print(f"-> utilisation du fichier local {LOCAL_FALLBACK.name}", file=sys.stderr)
-            text = read_text(str(LOCAL_FALLBACK))
+        if fallback and Path(fallback).exists() and fallback != source:
+            print(f"-> utilisation du fichier local {Path(fallback).name}", file=sys.stderr)
+            text = read_text(fallback)
         else:
             raise
     rows = list(csv.DictReader(io.StringIO(text)))
     if not rows:
-        raise SystemExit("La feuille est vide : rien à faire.")
-    headers = {h.strip().lower(): h for h in rows[0].keys() if h}
-    id_h = headers.get(ID_COLUMN.lower())
+        print("  (feuille vide)")
+        return []
+    headers = {_norm_header(h): h for h in rows[0].keys() if h}
+    id_h = headers.get(_norm_header(ID_COLUMN))
     name_h = headers.get("band")
     if not id_h:
-        raise SystemExit(f"Colonne « {ID_COLUMN} » introuvable dans la feuille. Colonnes : {list(rows[0].keys())}")
+        print(f"  colonne « {ID_COLUMN} » introuvable, feuille ignorée. Colonnes : {list(rows[0].keys())}", file=sys.stderr)
+        return []
     seen, out = set(), []
     for r in rows:
         i = re.sub(r"\s", "", (r.get(id_h) or ""))
@@ -142,6 +157,42 @@ def days_since(iso):
 
 
 # ---------------------------------------------------------------- Metal Archives
+def install_browser_http(cookie=""):
+    """Metal Archives (Cloudflare) refuse les requêtes Python classiques (403).
+    On remplace la couche HTTP d'enmet par curl_cffi, qui imite l'empreinte d'un vrai Chrome.
+    Renvoie True si c'est en place, False si curl_cffi manque (enmet utilisera alors requests)."""
+    try:
+        from curl_cffi import requests as cr
+    except ImportError:
+        return False
+    from urllib.parse import urljoin
+
+    from bs4 import BeautifulSoup
+    import enmet.pages as pages
+
+    session = cr.Session(impersonate="chrome")
+    headers = {"Accept-Language": "en-US,en;q=0.9"}
+    if cookie:
+        headers["Cookie"] = cookie
+
+    def _get(self, resource):
+        url = urljoin(pages._METALLUM_URL, resource)
+        # 429 = trop de requêtes : on patiente de plus en plus longtemps avant d'abandonner
+        for wait in RATE_LIMIT_WAITS + (None,):
+            r = session.get(url, headers=headers, timeout=30)
+            if r.status_code != 429 or wait is None:
+                break
+            retry_after = str(r.headers.get("Retry-After", "")).strip()
+            pause = min(300, int(retry_after)) if retry_after.isdigit() else wait
+            print(f"   (429 : Metal Archives demande de ralentir, pause de {pause} s)", flush=True)
+            time.sleep(pause)
+        r.raise_for_status()
+        return BeautifulSoup(r.content, features="html.parser")
+
+    pages._CachedSite._cached_get = _get
+    return True
+
+
 def fetch_band(band_id):
     """Interroge Metal Archives (enmet) et renvoie un dict prêt à être mis en cache."""
     from enmet import Band  # import tardif : --dry-run fonctionne sans enmet
@@ -183,6 +234,8 @@ def fetch_band(band_id):
         "logo": logo,
         "checked": today(),
     }
+    if not record["country"] and not record["genre"]:
+        raise RuntimeError("fiche vide (page de vérification ou limite atteinte ?)")
     return {k: v for k, v in record.items() if v != ""} | {"checked": today()}
 
 
@@ -202,15 +255,21 @@ def main():
     ap.add_argument("--only", help="IDs à forcer, séparés par des virgules")
     ap.add_argument("--refresh-days", type=int, default=180, help="réinterroge les fiches plus vieilles que N jours (0 = jamais)")
     ap.add_argument("--retry-days", type=int, default=30, help="réessaie les groupes introuvables après N jours")
-    ap.add_argument("--delay", type=float, default=0.7, help="pause supplémentaire (secondes) entre deux groupes")
+    ap.add_argument("--delay", type=float, default=2.5, help="pause supplémentaire (secondes) entre deux groupes")
+    ap.add_argument("--cookie", default="", help="en secours : cookies copiés de ton navigateur (ex. \"cf_clearance=...\")")
     ap.add_argument("--dry-run", action="store_true", help="n'interroge rien, affiche seulement la liste")
     args = ap.parse_args()
 
-    source = find_csv_source(args.csv)
-    print(f"Feuille des groupes : {source[:90]}{'…' if len(source) > 90 else ''}")
-    entries = read_ids(source)
-    names = dict(entries)
-    print(f"{len(entries)} groupes avec un ID Metal Archives.")
+    entries, names = [], {}
+    for source, fallback in find_csv_sources(args.csv):
+        print(f"Lecture : {source[:90]}{'…' if len(source) > 90 else ''}")
+        found = read_ids(source, fallback)
+        new = [(i, n) for i, n in found if i not in names]
+        for i, n in new:
+            names[i] = n
+        entries += new
+        print(f"  {len(found)} ID Metal Archives ({len(new)} nouveaux).")
+    print(f"{len(entries)} groupes distincts avec un ID Metal Archives.")
 
     cache = load_cache()
     if args.only:
@@ -221,6 +280,8 @@ def main():
             rec = cache.get(i)
             if rec is None:
                 todo.append(i)
+            elif not rec.get("error") and not rec.get("country") and not rec.get("genre"):
+                todo.append(i)  # fiche incomplète d'un passage précédent
             elif rec.get("error"):
                 if days_since(rec.get("checked")) >= args.retry_days:
                     todo.append(i)
@@ -249,6 +310,12 @@ def main():
     except ImportError:
         print("La bibliothèque enmet manque :  pip install enmet==0.9.1", file=sys.stderr)
         return 1
+
+    if install_browser_http(args.cookie):
+        print("Connexion type Chrome (curl_cffi) activée.")
+    else:
+        print("curl_cffi absent : connexion Python classique (souvent refusée en 403). "
+              "Installe-le :  pip install curl_cffi", file=sys.stderr)
 
     ok = missing = failed = streak = 0
     try:
