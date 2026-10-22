@@ -119,3 +119,15 @@ dt{color:var(--muted)} dd{margin:0}
 .clip-list{list-style:none;padding:0;margin:0}
 .clip-list li{padding:6px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}
 @media(max-width:700px){#search{min-width:100%}header{flex-wrap:wrap}}
+
+/* mode chrono */
+.seg .timer-toggle{margin-left:10px;border-style:dashed}
+.seg .timer-toggle.active{border-style:solid}
+.timer{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:0 0 14px}
+.timer i{display:block;height:100%;width:100%;background:var(--accent2)}
+.timer.low i{background:#e8837f}
+.game-end{text-align:center;padding:10px 0}
+.game-end .big{font-size:42px;font-weight:700;color:var(--accent2);line-height:1.1}
+.game-end p{margin:6px 0}
+.game-end .play{margin-top:14px;padding:9px 22px;font-size:15px}
+.pts{color:var(--accent2);font-weight:700}

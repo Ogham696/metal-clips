@@ -68,7 +68,7 @@ Le script `tools/update_yt_cache.py` (bibliothèque `yt-dlp`) lit l'adresse YouT
 
 - **Accueil** : les 20 derniers clips (colonne `DATE`, plus récent d'abord) et quelques chiffres. Le nombre de clips se règle avec `homeCount` dans `config.js`.
 - **Carte** : chaque groupe est placé dans sa ville d'après la colonne `Location` et son pays (ex. « Cleveland, Ohio » + United States). Les groupes proches se regroupent en bulles qui se séparent quand on zoome. Si la ville n'est pas reconnue, le groupe est placé au centre de son pays (cercle creux). Quand une ligne indique plusieurs villes, la plus récente est utilisée. Les coordonnées viennent de `data/cities.json` (fichier généré une fois : ne le modifie pas). Pour corriger ou ajouter une ville, utilise `CITY_EXTRA` dans `countries.js`.
-- **Jeux** : « Quel groupe ? » (un logo, 4 noms) et « Quel pays ? » (un nom de groupe, 4 pays). Vert/rouge puis « Suivant ». Les touches 1 à 4 répondent, Entrée passe à la suite.
+- **Jeux** : « Quel groupe ? » (un logo, 4 noms) et « Quel pays ? » (un nom de groupe, 4 pays). Vert/rouge puis « Suivant ». Les touches 1 à 4 répondent, Entrée passe à la suite. Le bouton **⏱ Chrono** lance une manche de 10 questions à 5 secondes : passage automatique à la question suivante, 100 points par bonne réponse + jusqu'à 50 selon la rapidité, record gardé dans le navigateur. Pour changer les durées : `ROUND_LEN`, `TIME_LIMIT`, `BONUS_MAX` en haut de la partie Jeux de `views.js`. Dans le jeu des logos, les mauvaises réponses sont des noms proches de la bonne (même nombre de mots, mêmes initiales, même fin).
 
 ## Colonnes
 

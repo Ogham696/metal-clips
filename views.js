@@ -202,15 +202,32 @@
   };
 
   // ================= JEUX =================
+  const ROUND_LEN = 10, TIME_LIMIT = 5000, BONUS_MAX = 50;   // 100 points par bonne réponse + jusqu'à 50 selon la rapidité
+  const store = {
+    get(k) { try { return +localStorage.getItem(k) || 0; } catch (e) { return 0; } },
+    set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) { /* stockage indisponible : sans importance */ } },
+  };
   const GAMES = {
     mode: "logo", pool: [], deck: [], names: [], countries: [],
     score: 0, played: 0, streak: 0, best: 0,
     cur: null, correct: "", options: [], answered: false, inited: false,
+    // mode chrono : ROUND_LEN questions, TIME_LIMIT ms par question, passage automatique à la suivante
+    timed: false, points: 0, finished: false, tick: null, auto: null, deadline: 0,
+
+    stopTimers() { clearInterval(this.tick); clearTimeout(this.auto); this.tick = this.auto = null; },
 
     show() {
-      if (this.inited) return;
+      if (this.inited) {
+        // retour sur la page pendant une question chronométrée : on repart de zéro sur cette question
+        if (this.timed && !this.answered && !this.finished && this.cur) this.render();
+        return;
+      }
       this.inited = true;
-      $("#game-modes").onclick = (e) => { const b = e.target.closest("[data-game]"); if (b) this.start(b.dataset.game); };
+      $("#game-modes").onclick = (e) => {
+        if (e.target.closest("[data-timer]")) { this.timed = !this.timed; this.start(this.mode); return; }
+        const b = e.target.closest("[data-game]"); if (b) this.start(b.dataset.game);
+      };
+      $("#game-box").addEventListener("click", (e) => { if (e.target.closest("#game-replay")) this.start(this.mode); });
       $("#game-box").onclick = (e) => {
         const ch = e.target.closest(".choice"), bb = e.target.closest("[data-band]");
         if (ch) this.answer(ch);
@@ -230,7 +247,10 @@
     },
 
     start(mode) {
-      this.mode = mode;
+      this.stopTimers();
+      this.mode = mode; this.points = 0; this.finished = false;
+      const tt = document.querySelector("#game-modes [data-timer]");
+      if (tt) tt.classList.toggle("active", this.timed);
       document.querySelectorAll("#game-modes [data-game]").forEach((b) => b.classList.toggle("active", b.dataset.game === mode));
       const all = bands();
       this.pool = mode === "logo" ? all.filter((b) => isHttp(b.logo)) : all.filter((b) => validCountry(b.country));
@@ -245,6 +265,9 @@
     },
 
     next() {
+      this.stopTimers();
+      if (this.finished) { this.start(this.mode); return; }   // manche finie : Entrée relance
+      if (this.timed && this.played >= ROUND_LEN) { this.end(); return; }
       const box = $("#game-box"), source = this.mode === "logo" ? this.names : this.countries;
       if (!this.pool.length || source.length < 4) {
         box.innerHTML = `<p class="muted">${this.mode === "logo"
@@ -265,6 +288,7 @@
     },
 
     scoreLine() {
+      if (this.timed) return `Question <b>${Math.min(this.played + (this.answered ? 0 : 1), ROUND_LEN)}</b> / ${ROUND_LEN} &nbsp;·&nbsp; Points : <b>${this.points}</b> &nbsp;·&nbsp; Bonnes réponses : <b>${this.score}</b>`;
       return `Score : <b>${this.score}</b> / ${this.played} &nbsp;·&nbsp; Série : <b>${this.streak}</b> &nbsp;·&nbsp; Record : ${this.best}`;
     },
 
@@ -273,7 +297,9 @@
       const visual = this.mode === "logo"
         ? `<div class="game-visual game-logo"><img src="${esc(item.logo)}" alt="Logo d'un groupe" referrerpolicy="no-referrer"></div><p class="game-prompt">Quel est ce groupe ?</p>`
         : `<div class="game-visual"><div class="game-band">${esc(item.name)}</div></div><p class="game-prompt">De quel pays vient ce groupe ?</p>`;
-      $("#game-box").innerHTML = `<div class="game-score" id="game-score">${this.scoreLine()}</div>${visual}` +
+      this.stopTimers();
+      $("#game-box").innerHTML = `<div class="game-score" id="game-score">${this.scoreLine()}</div>` +
+        (this.timed ? `<div class="timer" id="game-timer"><i></i></div>` : "") + visual +
         `<div class="choices">${this.options.map((o, i) => `<button class="choice" data-v="${esc(o)}"><span class="k">${i + 1}</span>${esc(o)}</button>`).join("")}</div>` +
         `<div class="game-foot" id="game-foot"></div>`;
       const img = $("#game-box .game-logo img");
@@ -281,13 +307,61 @@
       if (img) img.addEventListener("error", () => {
         this.pool = this.pool.filter((b) => b !== item); this.deck = this.deck.filter((b) => b !== item); this.next();
       });
+      // le chrono ne démarre qu'une fois le logo affiché (une image lente ne doit pas faire perdre de temps)
+      if (this.timed) {
+        if (img && !(img.complete && img.naturalWidth)) img.addEventListener("load", () => this.startTimer(item), { once: true });
+        else this.startTimer(item);
+      }
+    },
+
+    startTimer(item) {
+      if (this.cur !== item || this.answered) return;
+      this.stopTimers();
+      this.deadline = Date.now() + TIME_LIMIT;
+      const bar = $("#game-timer"), fill = bar && bar.firstElementChild;
+      this.tick = setInterval(() => {
+        const left = this.deadline - Date.now();
+        if (A().state.tab !== "games") { this.stopTimers(); return; }   // on a quitté la page : le chrono s'arrête
+        if (fill) fill.style.width = Math.max(0, (left / TIME_LIMIT) * 100) + "%";
+        if (bar) bar.classList.toggle("low", left < TIME_LIMIT * 0.3);
+        if (left <= 0) this.timeout();
+      }, 50);
+    },
+
+    timeout() {
+      if (this.answered) return;
+      this.stopTimers();
+      this.answered = true; this.played++; this.streak = 0;
+      const { esc } = A();
+      document.querySelectorAll("#game-box .choice").forEach((b) => {
+        b.disabled = true;
+        b.classList.add(nameKey(b.dataset.v) === nameKey(this.correct) ? "ok" : "dim");
+      });
+      $("#game-score").innerHTML = this.scoreLine();
+      $("#game-foot").innerHTML = `<span class="verdict ko">⏱ Temps écoulé ! C'était : ${esc(this.correct)}</span>`;
+      this.auto = setTimeout(() => this.next(), 1800);
+    },
+
+    end() {
+      this.finished = true;
+      const key = "metalclips-best-" + this.mode, prev = store.get(key), record = this.points > prev;
+      if (record) store.set(key, this.points);
+      $("#game-box").innerHTML = `<div class="game-end"><p class="muted">Manche terminée</p><div class="big">${this.points} pts</div>` +
+        `<p>${this.score} bonne${this.score > 1 ? "s" : ""} réponse${this.score > 1 ? "s" : ""} sur ${ROUND_LEN}</p>` +
+        `<p class="muted">${record ? "🏆 Nouveau record !" : "Record : " + prev + " pts"}</p>` +
+        `<button id="game-replay" class="play">Rejouer</button></div>`;
     },
 
     answer(btn) {
       if (this.answered) return;
+      this.stopTimers();
+      const left = Math.max(0, this.deadline - Date.now());
       this.answered = true; this.played++;
       const { esc } = A(), ok = nameKey(btn.dataset.v) === nameKey(this.correct);
-      if (ok) { this.score++; this.streak++; this.best = Math.max(this.best, this.streak); } else this.streak = 0;
+      if (ok) {
+        this.score++; this.streak++; this.best = Math.max(this.best, this.streak);
+        if (this.timed) this.points += 100 + Math.round(BONUS_MAX * left / TIME_LIMIT);
+      } else this.streak = 0;
       document.querySelectorAll("#game-box .choice").forEach((b) => {
         b.disabled = true;
         if (nameKey(b.dataset.v) === nameKey(this.correct)) b.classList.add("ok");
@@ -295,6 +369,11 @@
         else b.classList.add("dim");
       });
       $("#game-score").innerHTML = this.scoreLine();
+      if (this.timed) {
+        $("#game-foot").innerHTML = `<span class="verdict ${ok ? "ok" : "ko"}">${ok ? "✔ Bonne réponse !" : "✘ C'était : " + esc(this.correct)}</span>`;
+        this.auto = setTimeout(() => this.next(), ok ? 900 : 1800);   // passage automatique à la suite
+        return;
+      }
       $("#game-foot").innerHTML =
         `<span class="verdict ${ok ? "ok" : "ko"}">${ok ? "✔ Bonne réponse !" : "✘ C'était : " + esc(this.correct)}</span>` +
         `<button class="link-btn" data-band="${esc(this.cur.k)}">Fiche de ${esc(this.cur.name)} ↗</button>` +
