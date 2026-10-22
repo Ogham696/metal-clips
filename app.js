@@ -210,6 +210,8 @@
   }
 
   function switchTab(tab) {
+    // les autres pages peuvent couper ce qu'elles font (ex. le son du jeu « Quel morceau ? »)
+    if (window.VIEWS) for (const [name, v] of Object.entries(window.VIEWS)) if (name !== tab && v.hide) v.hide();
     // quelle vue afficher ?
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     const viewId = "view-" + (isTable(tab) ? "table" : tab);

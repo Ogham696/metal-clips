@@ -131,3 +131,30 @@ dt{color:var(--muted)} dd{margin:0}
 .game-end p{margin:6px 0}
 .game-end .play{margin-top:14px;padding:9px 22px;font-size:15px}
 .pts{color:var(--accent2);font-weight:700}
+
+/* jeu « Quel morceau ? » */
+.yt-holder{position:relative;width:100%;max-width:400px;aspect-ratio:16/9;margin:0 auto 14px;background:#000;border-radius:10px;overflow:hidden}
+.yt-holder iframe,.yt-holder #yt-player{position:absolute;inset:0;width:100%;height:100%;border:0}
+.yt-cover{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:linear-gradient(135deg,#17262a,#0e1517);color:var(--muted)}
+.yt-cover span{font-size:48px}
+.yt-cover.off{display:none}
+.song-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;justify-content:center}
+.song-hints{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+.hint-btn{padding:5px 10px;font-size:13px}
+.hint-btn.used{opacity:.5}
+.hint-out{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;min-height:4px}
+.chip{background:var(--bg);border:1px solid var(--accent2);border-radius:16px;padding:3px 12px;font-size:13px}
+.song-field{display:block;margin-bottom:10px;color:var(--muted)}
+.song-field input{display:block;width:100%;margin-top:4px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:16px}
+.song-field input:focus{outline:none;border-color:var(--accent2)}
+.song-field input.ok{border-color:#4fd1a1;background:#143d2c}
+.song-field input.ko{border-color:#e06c6c;background:#3b1b1b}
+.song-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.song-row .play{padding:8px 20px}
+.song-msg{min-height:22px;margin-top:8px;color:var(--muted)}
+.song-msg.ko{color:#e8837f}
+.song-reveal{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);text-align:center}
+.song-reveal .verdict{font-size:18px}
+.song-answer{font-size:18px;margin:6px 0;overflow-wrap:anywhere}
+.song-reveal .game-foot{justify-content:center}
+.song-reveal .game-foot .play{margin-left:0}

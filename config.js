@@ -70,6 +70,8 @@ const CONFIG = {
     // lien Metal Archives construit depuis cette colonne d'ID (optionnel)
     maIdCol: "ID metal-archives",
   },
+  // jeu « Quel morceau ? » (extrait de clip) : points et durées
+  song: { extractSeconds: 20, bandPoints: 100, hintCost: 20, wrongCost: 10, minBand: 20, titleBonus: 30, tries: 3 },
   pageSize: 50,
   // nombre de clips récents affichés sur la page d'accueil
   homeCount: 20,
