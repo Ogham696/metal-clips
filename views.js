@@ -13,6 +13,55 @@
     return a;
   };
 
+
+  // ---------- ressemblance entre noms de groupes (jeu des logos) ----------
+  // Les mauvaises réponses sont choisies parmi les noms les plus proches de la bonne : même première lettre,
+  // mêmes premières lettres de chaque mot, même nombre de mots, même fin du dernier mot, longueur voisine.
+  const nameKey = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/&/g, " and ")
+    .replace(/[^a-z0-9\u0400-\u04ff\u0370-\u03ff\u3040-\u30ff\u4e00-\u9fff\s]+/g, " ").replace(/\s+/g, " ").trim();
+  const words = (s) => { const k = nameKey(s); return k ? k.split(" ") : []; };
+  const commonPrefix = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return i; };
+  const commonSuffix = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[a.length - 1 - i] === b[b.length - 1 - i]) i++; return i; };
+  function similarity(a, b) {
+    const wa = words(a), wb = words(b);
+    if (!wa.length || !wb.length) return 0;
+    let sc = 0;
+    // même nombre de mots
+    sc += wa.length === wb.length ? 6 : -2 * Math.min(3, Math.abs(wa.length - wb.length));
+    // premier mot : même première lettre, puis les premières lettres communes (jusqu'à 4)
+    if (wa[0][0] === wb[0][0]) sc += 5;
+    sc += 1.5 * Math.min(4, commonPrefix(wa[0], wb[0]));
+    if (wa[0] === wb[0] && wa.length > 1) sc += 4;   // même premier mot (« Black … »)
+    // chaque mot, à la même place : début identique
+    const n = Math.min(wa.length, wb.length);
+    for (let i = 1; i < n; i++) {
+      if (wa[i][0] === wb[i][0]) sc += 2;
+      sc += 0.8 * Math.min(3, commonPrefix(wa[i], wb[i]));
+    }
+    // dernier mot : même fin (jusqu'à 4 lettres)
+    const la = wa[wa.length - 1], lb = wb[wb.length - 1];
+    sc += 1.5 * Math.min(4, commonSuffix(la, lb));
+    if (la === lb && wa.length > 1) sc += 2;
+    // longueur voisine (premier mot, dernier mot, ensemble)
+    sc -= 0.4 * Math.abs(wa[0].length - wb[0].length) + 0.4 * Math.abs(la.length - lb.length)
+        + 0.15 * Math.abs(nameKey(a).length - nameKey(b).length);
+    return sc;
+  }
+  // 3 noms proches de `correct`, tirés au sort parmi les plus ressemblants (un peu de hasard pour varier les parties)
+  function closeNames(correct, names, count = 3) {
+    const ck = nameKey(correct), seen = new Set([ck]);
+    const scored = [];
+    for (const n of names) {
+      const k = nameKey(n);
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      scored.push({ n, s: similarity(correct, n) + Math.random() * 1.5 });
+    }
+    scored.sort((x, y) => y.s - x.s);
+    return scored.slice(0, count).map((x) => x.n);
+  }
+  window.__closeNames = closeNames;
+
   // liste des groupes avec les infos utiles aux trois pages
   function bands() {
     const { state, clean, col, bandName } = A();
@@ -185,7 +234,10 @@
       document.querySelectorAll("#game-modes [data-game]").forEach((b) => b.classList.toggle("active", b.dataset.game === mode));
       const all = bands();
       this.pool = mode === "logo" ? all.filter((b) => isHttp(b.logo)) : all.filter((b) => validCountry(b.country));
-      this.names = [...new Set(all.map((b) => b.name))];
+      // noms uniques (sans tenir compte de la casse ni des accents) : deux groupes homonymes comptent pour un seul nom
+      const byKey = new Map();
+      for (const b of all) if (!byKey.has(nameKey(b.name))) byKey.set(nameKey(b.name), b.name);
+      this.names = [...byKey.values()];
       this.countries = [...new Set(all.map((b) => b.country).filter(validCountry))];
       this.score = this.played = this.streak = 0;
       this.deck = [];
@@ -205,7 +257,10 @@
       this.cur = item; this.answered = false;
       this.correct = this.mode === "logo" ? item.name : item.country;
       const lc = (s) => s.toLowerCase();
-      this.options = shuffle([this.correct, ...shuffle(source.filter((x) => lc(x) !== lc(this.correct))).slice(0, 3)]);
+      const wrong = this.mode === "logo"
+        ? closeNames(this.correct, this.names)   // noms proches de la bonne réponse
+        : shuffle(source.filter((x) => lc(x) !== lc(this.correct))).slice(0, 3);
+      this.options = shuffle([this.correct, ...wrong]);
       this.render();
     },
 
@@ -231,11 +286,11 @@
     answer(btn) {
       if (this.answered) return;
       this.answered = true; this.played++;
-      const { esc } = A(), ok = btn.dataset.v === this.correct;
+      const { esc } = A(), ok = nameKey(btn.dataset.v) === nameKey(this.correct);
       if (ok) { this.score++; this.streak++; this.best = Math.max(this.best, this.streak); } else this.streak = 0;
       document.querySelectorAll("#game-box .choice").forEach((b) => {
         b.disabled = true;
-        if (b.dataset.v === this.correct) b.classList.add("ok");
+        if (nameKey(b.dataset.v) === nameKey(this.correct)) b.classList.add("ok");
         else if (b === btn) b.classList.add("ko");
         else b.classList.add("dim");
       });
