@@ -48,7 +48,7 @@ VIDEO_ID = re.compile(
 # erreurs qui veulent dire « cette vidéo-là n'est pas lisible » (et non « YouTube nous bloque »)
 UNAVAILABLE = ("video unavailable", "private video", "has been removed", "this video is not available",
                "account associated with this video has been terminated", "copyright", "members-only",
-               "who has blocked it", "no longer available", "does not exist", "age-restricted")
+               "who has blocked it", "no longer available", "does not exist")
 
 
 def today():
@@ -144,12 +144,35 @@ class Unavailable(Exception):
     """La vidéo existe dans la feuille mais n'est pas lisible (privée, supprimée…)."""
 
 
+class Upcoming(Exception):
+    """Première / direct pas encore commencé : pas une erreur, on réessaiera au prochain passage."""
+
+
+class AgeRestricted(Exception):
+    """Vidéo réservée aux comptes connectés (âge) : propre à cette vidéo, ce n'est pas un blocage."""
+
+
+class _Quiet:
+    """Empêche yt-dlp d'afficher lui-même ses erreurs (le script affiche une ligne par vidéo)."""
+    def debug(self, msg): pass
+    def info(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): pass
+
+
+UPCOMING = ("premieres in", "premiere will begin", "will begin in", "live event will begin", "scheduled for")
+
+
 def fetch_video(ydl, vid):
     """Interroge YouTube (yt-dlp) et renvoie {date: 'AAAA-MM-JJ', duration: secondes, checked}."""
     try:
         info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=False)
     except Exception as e:  # noqa: BLE001
         msg = str(e).lower()
+        if any(k in msg for k in UPCOMING):
+            raise Upcoming(str(e)) from e
+        if "confirm your age" in msg or "age-restricted" in msg or "inappropriate for some users" in msg:
+            raise AgeRestricted(str(e)) from e
         if any(k in msg for k in UNAVAILABLE) and "not a bot" not in msg:
             raise Unavailable(str(e)) from e
         raise
@@ -171,6 +194,8 @@ def main():
     ap.add_argument("--all", action="store_true", help="aussi les clips dont DATE et DURATION sont déjà remplies")
     ap.add_argument("--retry-days", type=int, default=30, help="réessaie les vidéos indisponibles après N jours")
     ap.add_argument("--delay", type=float, default=1.0, help="pause (secondes) entre deux vidéos")
+    ap.add_argument("--browser", metavar="NAVIGATEUR",
+                    help="utilise les cookies de ton navigateur (chrome, edge, firefox…) : débloque les vidéos « 18+ »")
     ap.add_argument("--dry-run", action="store_true", help="n'interroge rien, affiche seulement la liste")
     args = ap.parse_args()
 
@@ -208,8 +233,10 @@ def main():
         return 1
 
     opts = {"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True,
-            "socket_timeout": 30, "extract_flat": False, "ignoreerrors": False}
-    ok = unavailable = failed = streak = 0
+            "socket_timeout": 30, "extract_flat": False, "ignoreerrors": False, "logger": _Quiet()}
+    if args.browser:
+        opts["cookiesfrombrowser"] = (args.browser,)
+    ok = unavailable = upcoming = restricted = failed = streak = 0
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             for n, vid in enumerate(todo, 1):
@@ -220,6 +247,14 @@ def main():
                     streak = 0
                     r = cache[vid]
                     print(f"{label} -> {r.get('date', '?')}  {r.get('duration', '?')} s")
+                except Upcoming:
+                    # première pas encore sortie : on ne la mémorise pas, elle sera redemandée la prochaine fois
+                    upcoming += 1
+                    print(f"{label} -> pas encore sortie (première / direct à venir), à refaire plus tard")
+                except AgeRestricted:
+                    cache[vid] = {"error": "age_restricted", "checked": today()}
+                    restricted += 1
+                    print(f"{label} -> réservée aux comptes connectés (18+) ; essaie --browser chrome")
                 except Unavailable:
                     cache[vid] = {"error": "unavailable", "checked": today()}
                     unavailable += 1
@@ -238,7 +273,8 @@ def main():
                 time.sleep(max(0.0, args.delay))
     finally:
         save_cache(cache)
-        print(f"\nTerminé : {ok} complétées, {unavailable} indisponibles, {failed} en échec. Cache : {len(cache)} vidéos.")
+        print(f"\nTerminé : {ok} complétées, {upcoming} à venir, {restricted} 18+, {unavailable} indisponibles, "
+              f"{failed} en échec. Cache : {len(cache)} vidéos.")
     return 0
 
 
