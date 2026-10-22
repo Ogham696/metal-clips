@@ -57,8 +57,10 @@ Comme Python ne tourne pas sur GitHub Pages, le script `tools/update_ma_cache.py
 Le script `tools/update_yt_cache.py` (bibliothèque `yt-dlp`) lit l'adresse YouTube de chaque clip dans la feuille, demande à YouTube la **date de publication** et la **durée**, et les range dans `data/yt_cache.json`. Le site remplit alors les colonnes `DATE` et `DURATION` **uniquement quand la feuille les laisse vides ou en `#N/A`** : tes valeurs restent prioritaires. Le tri par date et la page d'accueil en profitent.
 
 - Seules les vidéos qui manquent sont interrogées ; une vidéo déjà dans le cache n'est jamais redemandée. Une vidéo privée ou supprimée est notée « indisponible » et réessayée après 30 jours.
+- Une vidéo pas encore sortie (« Premieres in 7 hours ») n'est **pas** une erreur : elle est ignorée pour l'instant, redemandée au prochain passage, et ne compte pas dans les échecs qui arrêtent le script.
+- Une vidéo 18+ est notée à part. Pour qu'elle passe, ajoute les cookies de ton navigateur : `python tools/update_yt_cache.py --browser chrome` (ou `edge`, `firefox`).
 - Les liens de playlist (`&list=…`) fonctionnent : seul l'identifiant de la vidéo compte.
-- Pour tout mettre à jour d'un coup (Metal Archives puis YouTube) : `python tools/update_all.py`. Ensuite, envoie `data/ma_cache.json` et `data/yt_cache.json` sur GitHub.
+- Pour tout mettre à jour d'un coup (Metal Archives puis YouTube) : `python tools/update_all.py`. Avec `--push`, les deux fichiers de cache sont aussi envoyés sur GitHub (commit + push) ; il faut pour cela que le dossier soit un dépôt cloné avec GitHub Desktop. Ensuite, envoie `data/ma_cache.json` et `data/yt_cache.json` sur GitHub.
 - Installation : `pip install enmet==0.9.1 curl_cffi yt-dlp`.
 - Pour désactiver : `ytCacheFile: ""` dans `config.js`.
 
