@@ -107,7 +107,7 @@
       }
       this.songDeck = []; this.total = 0; this.rounds = 0; this.found = 0;
       $("#game-box").innerHTML = `<div class="game-score" id="game-score"></div><div class="yt-holder" id="yt-holder"><div id="yt-player"></div>` +
-        `<div class="yt-cover" id="yt-cover"><span>🎧</span><small>Écoute l'extrait…</small></div></div><div id="song-body"></div>`;
+        `<div class="yt-cover" id="yt-cover"><span>🎧</span><small>Écoute l'extrait…</small></div><div class="yt-mask" id="yt-mask"></div></div><div id="song-body"></div>`;
       this.player = null;
       if (this.songPool.length < 1) { $("#song-body").innerHTML = `<p class="muted">Aucun clip YouTube dans la feuille pour jouer.</p>`; return; }
       this.nextSong();
@@ -144,7 +144,7 @@
       if (dur) start = Math.min(start, Math.max(0, dur - S.extractSeconds - 5));
       this.song = { clip, start, hints: [], wrong: 0, bandOK: false, titleOK: false, done: false, listened: false };
       this.answered = false; this.cur = clip;
-      $("#yt-cover").classList.remove("off");
+      $("#yt-cover").classList.remove("off"); $("#yt-mask").classList.remove("off");
       if (this.player && this.player.pauseVideo) { try { this.player.pauseVideo(); } catch (e) { /* sans importance */ } }
       this.renderSong();
     },
@@ -226,10 +226,15 @@
       this.player.loadVideoById({ videoId: s.clip.vid, startSeconds: s.start });
       s.listened = true; btn.disabled = false; btn.textContent = "🔁 Réécouter l'extrait";
       status.textContent = "🔊 Extrait en cours…";
+      // la vidéo est visible pendant l'extrait (bandeau noir sur le haut : YouTube y affiche le titre)
+      $("#yt-cover").classList.add("off");
       clearTimeout(this.songTimer);
       this.songTimer = setTimeout(() => {
         try { this.player.pauseVideo(); } catch (e) { /* sans importance */ }
-        if (this.song === s && !s.done) status.textContent = "Extrait terminé : tu peux le réécouter.";
+        if (this.song === s && !s.done) {
+          $("#yt-cover").classList.remove("off");   // la vidéo remise en pause pourrait afficher des titres : on la recache
+          status.textContent = "Extrait terminé : tu peux le réécouter.";
+        }
       }, S.extractSeconds * 1000);
     },
 
@@ -267,7 +272,7 @@
       const bandPts = s.bandOK ? this.potential() : 0, titlePts = s.titleOK ? S.titleBonus : 0, gain = bandPts + titlePts;
       this.total += gain; this.rounds++; if (s.bandOK) this.found++;
       $("#game-score").innerHTML = this.songScoreLine();
-      $("#yt-cover").classList.add("off");   // on montre enfin la vidéo
+      $("#yt-cover").classList.add("off"); $("#yt-mask").classList.add("off");   // on montre enfin la vidéo
       document.querySelectorAll("#song-form input, #song-form button").forEach((e) => (e.disabled = true));
       document.querySelectorAll(".hint-btn").forEach((e) => (e.disabled = true));
       const parts = [];

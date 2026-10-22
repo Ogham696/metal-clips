@@ -158,3 +158,6 @@ dt{color:var(--muted)} dd{margin:0}
 .song-answer{font-size:18px;margin:6px 0;overflow-wrap:anywhere}
 .song-reveal .game-foot{justify-content:center}
 .song-reveal .game-foot .play{margin-left:0}
+.yt-mask{position:absolute;left:0;right:0;top:0;height:20%;background:#000;z-index:2}
+.yt-mask.off{display:none}
+.yt-holder iframe{pointer-events:none}   /* un clic ne peut plus mettre la vidéo en pause (ce qui afficherait des titres) */
