@@ -161,3 +161,5 @@ dt{color:var(--muted)} dd{margin:0}
 .yt-mask{position:absolute;left:0;right:0;top:0;height:20%;background:#000;z-index:2}
 .yt-mask.off{display:none}
 .yt-holder iframe{pointer-events:none}   /* un clic ne peut plus mettre la vidéo en pause (ce qui afficherait des titres) */
+.hint-btn.na{opacity:.35;text-decoration:line-through;border-style:dashed;cursor:not-allowed}
+.hint-btn.used{opacity:.6;text-decoration:none}

@@ -8,7 +8,7 @@
   if (!G) return;
   const $ = (s) => document.querySelector(s);
   const A = () => window.APP;
-  const S = Object.assign({ extractSeconds: 20, bandPoints: 100, hintCost: 20, wrongCost: 10, minBand: 20, titleBonus: 30, tries: 3 },
+  const S = Object.assign({ extractSeconds: 45, bandPoints: 100, hintCost: 20, wrongCost: 10, minBand: 20, titleBonus: 30, tries: 3 },
     (typeof CONFIG !== "undefined" && CONFIG.song) || {});
 
   // ---------- comparaison tolérante des réponses tapées ----------
@@ -139,7 +139,8 @@
       const clip = this.songDeck.pop();
       const dur = clip.dur || 0;
       let start;
-      if (dur > S.extractSeconds + 15) start = Math.floor(dur * 0.15 + Math.random() * Math.max(1, dur * 0.7 - S.extractSeconds));
+      if (!dur) start = 15 + Math.floor(Math.random() * 45);   // durée inconnue : quelque part dans la première minute
+      else if (dur > S.extractSeconds + 15) start = Math.floor(dur * 0.15 + Math.random() * Math.max(1, dur * 0.7 - S.extractSeconds));
       else start = dur > 30 ? 10 : 0;
       if (dur) start = Math.min(start, Math.max(0, dur - S.extractSeconds - 5));
       this.song = { clip, start, hints: [], wrong: 0, bandOK: false, titleOK: false, done: false, listened: false };
@@ -171,7 +172,7 @@
         `<div class="song-actions"><button class="play" id="song-listen">▶ Écouter l'extrait</button>` +
         `<span class="muted small" id="song-status">Extrait d'environ ${S.extractSeconds} secondes, tu peux le réécouter.</span></div>` +
         `<div class="song-hints"><span class="muted small">Indices (−${S.hintCost} pts sur le groupe chacun) :</span>` +
-        defs.map(([k, label]) => `<button type="button" class="ghost hint-btn" data-hint="${k}"${info[k] ? "" : " disabled"}>${label}${info[k] ? "" : " (inconnu)"}</button>`).join("") +
+        defs.map(([k, label]) => `<button type="button" class="ghost hint-btn${info[k] ? "" : " na"}" data-hint="${k}"${info[k] ? "" : ` disabled title="Information absente de la base pour ce groupe"`}>${label}</button>`).join("") +
         `</div><div class="hint-out" id="hint-out"></div>` +
         `<form id="song-form" autocomplete="off">` +
         `<label class="song-field">Nom du groupe<input id="song-band" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Qui joue ?"></label>` +
@@ -195,7 +196,7 @@
 
     takeHint(btn) {
       const s = this.song, k = btn.dataset.hint; if (!s || s.done || s.hints.includes(k)) return;
-      s.hints.push(k); btn.disabled = true; btn.classList.add("used");
+      s.hints.push(k); btn.disabled = true; btn.classList.add("used"); btn.textContent = "✓ " + btn.textContent;
       const labels = { style: "Style", formed: "Formé en", country: "Pays", themes: "Thèmes" };
       const chip = document.createElement("span");
       chip.className = "chip"; chip.innerHTML = `<b>${labels[k]} :</b> `; chip.appendChild(document.createTextNode(this.hintInfo[k]));
